@@ -1,4 +1,6 @@
 build/
+server/build
+database/build
 
 # Prerequisites
 *.d
