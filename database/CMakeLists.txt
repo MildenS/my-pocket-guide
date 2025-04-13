@@ -8,20 +8,23 @@ add_subdirectory(thirdparty/cpp-driver)
 find_package(OpenCV REQUIRED)
 
 add_library(${MPG_DATABASE_LIBRARY} src/database_module/database.cpp)
+
+target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC ${OpenCV_INCLUDE_DIRS} cassandra)
+target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC thirdparty/cpp-driver/include)
+
 target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC thirdparty/cpp-driver/include)
 target_link_libraries(${MPG_DATABASE_LIBRARY} cassandra)
 
-target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC include/)
+target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC include/ )
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 
- target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/cpp-driver/include)
 # #target_link_libraries(couchbase_cxx_client_static fmt::fmt)
- target_link_libraries(${PROJECT_NAME} cassandra)
+ target_link_libraries(${PROJECT_NAME} ${MPG_DATABASE_LIBRARY})
 
 # add_executable(TEMP src/main.cpp)
- target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS} )
- target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} ${MPG_DATABASE_LIBRARY})
+
+#target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} ${MPG_DATABASE_LIBRARY})
 
 # target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/PEGTL/include)
 # target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/json/include)
