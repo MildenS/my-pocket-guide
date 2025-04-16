@@ -5,48 +5,9 @@
 #include <clocale>
 #include <database_module/database.hpp>
 
-struct simple_class
-{
-  std::map<std::string, std::string> objects;
-};
-
-struct my_class
-{
-  my_class() {sim = new simple_class;}
-  std::map<std::string, std::string>& get_objects() const
-  {
-    return sim->objects;
-  }
-  simple_class* sim;
-};
-
 int main()
 {
-  my_class a;
-  auto objects = a.get_objects();
-  for (const auto& [key, value]: objects)
-  {
-    std::cout << key << value << std::endl;
-  }
-  objects.emplace(std::make_pair("bbb", "bbb"));
-  for (const auto& [key, value]: objects)
-  {
-    std::cout << key << value << std::endl;
-  }
-
-  std::string str ("я русская строка");
-
-  std::cout << str << std::endl;
-  std::cout << "я русский массив чаров" << std::endl;
-  std::cin >> str;
-  std::cout << str << std::endl;
-  std::getchar();
-  char* encoding = nl_langinfo(CODESET);
-        printf("Encoding is %s\n", encoding);
-        setlocale(LC_ALL, "");
-        char *loc = setlocale(LC_ALL, NULL);
-        printf("Encoding is %s\n", loc);
-        
+  MPGDatabase::DatabaseModule db;       
         
 }
 
@@ -133,49 +94,6 @@ int main()
 //   drawKeypoints(img, keypoints, img_keypoints, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
 //   imshow("Keypoints", img_keypoints);
 //   waitKey(0);
-
-//   return 0;
-// }
-
-
-
-
-
-
-
-
-// #include <cassandra.h>
-// /* Use "#include <dse.h>" when connecting to DataStax Enterpise */
-// #include <stdio.h>
-
-// int main() {
-//   /* Setup and connect to cluster */
-//   CassFuture* connect_future = NULL;
-//   CassCluster* cluster = cass_cluster_new();
-//   CassSession* session = cass_session_new();
-
-//   /* Add contact points */
-//   cass_cluster_set_contact_points(cluster, "127.0.0.1");
-
-//   /* Provide the cluster object as configuration to connect the session */
-//   connect_future = cass_session_connect(session, cluster);
-
-//   /* This operation will block until the result is ready */
-//   CassError rc = cass_future_error_code(connect_future);
-
-//   if (rc != CASS_OK) {
-//     /* Display connection error message */
-//     const char* message;
-//     size_t message_length;
-//     cass_future_error_message(connect_future, &message, &message_length);
-//     fprintf(stderr, "Connect error: '%.*s'\n", (int)message_length, message);
-//   }
-
-//   /* Run queries... */
-
-//   cass_future_free(connect_future);
-//   cass_session_free(session);
-//   cass_cluster_free(cluster);
 
 //   return 0;
 // }

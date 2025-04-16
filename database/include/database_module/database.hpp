@@ -5,6 +5,9 @@
 #include <memory>
 
 
+/**
+* \brief Namespace for MPG database classes and functions
+*/
 namespace MPGDatabase
 {
 
@@ -15,7 +18,7 @@ public:
 
     DatabaseModule();
 
-
+    ~DatabaseModule();
 
 
 private:

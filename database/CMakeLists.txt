@@ -21,10 +21,3 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 
 # #target_link_libraries(couchbase_cxx_client_static fmt::fmt)
  target_link_libraries(${PROJECT_NAME} ${MPG_DATABASE_LIBRARY})
-
-# add_executable(TEMP src/main.cpp)
-
-#target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS} ${MPG_DATABASE_LIBRARY})
-
-# target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/PEGTL/include)
-# target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/json/include)

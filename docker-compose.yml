@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  cassandra:
+    image: cassandra:latest
+    container_name: my-cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/etc/docker-volumes/cassandra
+    environment:
+      - CASSANDRA_CLUSTER_NAME=MyCluster
+      - CASSANDRA_SEEDS=172.19.0.2
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "SELECT * FROM system.local"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  cassandra_data:
