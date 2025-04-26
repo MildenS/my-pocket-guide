@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(MyPocketGuideDatabase)
-set(MPG_DATABASE_LIBRARY mpgDatabase)
+set(MPG_DATABASE_LIBRARY mpgDatabaseLib)
 
 set (CMAKE_CXX_STANDARD 17)
 
@@ -13,6 +13,8 @@ target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC ${OpenCV_INCLUDE_DIRS}
 target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC thirdparty/cpp-driver/include)
 
 target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC thirdparty/cpp-driver/include)
+
+target_link_libraries(${MPG_DATABASE_LIBRARY} ${OpenCV_LIBS})
 target_link_libraries(${MPG_DATABASE_LIBRARY} cassandra)
 
 target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC include/ )
