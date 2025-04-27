@@ -9,7 +9,7 @@ services:
       - cassandra_data:/etc/docker-volumes/cassandra
     environment:
       - CASSANDRA_CLUSTER_NAME=MPGCluster
-      - CASSANDRA_SEEDS=172.19.0.2
+      - CASSANDRA_SEEDS=my-cassandra
     # healthcheck:
     #   test: ["CMD", "cqlsh", "-e", "SELECT * FROM system.local"]
     #   interval: 30s

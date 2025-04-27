@@ -1,6 +1,7 @@
 build/
 server/build
 database/build
+.vscode/
 
 docs/html
 docs/latex

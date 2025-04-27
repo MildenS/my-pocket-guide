@@ -39,6 +39,37 @@ namespace MPGDatabase
         }
     };
 
+    struct CassIteratorDeleter
+    {
+        void operator()(CassIterator *ptr) const
+        {
+            cass_iterator_free(ptr);
+        }
+    };
+
+    class QueryResultHandler
+    {
+    public:
+        explicit QueryResultHandler(const CassResult *result) : result_(result) {}
+        ~QueryResultHandler()
+        {
+            if (result_)
+            {
+                cass_result_free(result_);
+            }
+        }
+        const CassResult *get() const { return result_; }
+
+    private:
+        const CassResult *result_;
+    };
+
+    struct CassUuidEqual {
+        bool operator()(const CassUuid& lhs, const CassUuid& rhs) const {
+            return lhs.time_and_version == rhs.time_and_version && lhs.clock_seq_and_node == rhs.clock_seq_and_node;
+        }
+    };
+
     struct DatabaseResponse
     {
         std::string exhibit_name;
