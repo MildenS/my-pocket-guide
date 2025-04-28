@@ -78,6 +78,13 @@ namespace MPGDatabase
         size_t percentage_of_confidance;
     };
 
+    struct DatabaseRequest
+    {
+        std::string exhibit_name;
+        std::string exhibit_description;
+        cv::Mat exhibit_image;
+    };
+
 }
 
 namespace std {

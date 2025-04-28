@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(MyPocketGuideDatabase)
 set(MPG_DATABASE_LIBRARY mpgDatabaseLib)
 
-set (CMAKE_CXX_STANDARD 17)
+#set (CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(thirdparty/cpp-driver)
 find_package(OpenCV REQUIRED)

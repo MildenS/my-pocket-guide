@@ -32,19 +32,27 @@ public:
 
     ~DatabaseModule();
 
+    bool init();
+
+    std::optional<CassUuid> findExhibitUuid(const cv::Mat& description);
+    std::optional<DatabaseResponse> getExhibit(const CassUuid& exhibit_id);
+    bool addExhibit(const DatabaseRequest& exhibit_data);
+
 
 protected:
 
     bool ConnectToDatabase(size_t max_retries = 10, size_t retry_delay_ms = 5000);
-    void loadDatabase();
+    bool loadDatabase();
 
-    std::optional<CassUuid> findExhibitUuid(const cv::Mat& description);
-    std::optional<DatabaseResponse> getExhibit(const CassUuid& exhibit_id);
 
     ClusterPtr cluster_ptr;
     SessionPtr session_ptr;
 
-    std::unordered_map<CassUuid, cv::Mat, std::hash<CassUuid>, CassUuidEqual> local_database;
+    //std::unordered_map<CassUuid, cv::Mat, std::hash<CassUuid>, CassUuidEqual> local_database;
+
+    cv::Mat local_database_descriptor;
+    std::vector<CassUuid> local_descriptor_to_id_map;
+
 };
 
 }

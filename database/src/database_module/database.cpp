@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <cassert>
+#include <opencv2/features2d/features2d.hpp>
 
 
 namespace MPGDatabase
@@ -57,9 +58,10 @@ namespace MPGDatabase
     }
 
     
-    void DatabaseModule::loadDatabase()
+    [[nodiscard]] bool DatabaseModule::loadDatabase()
     {
-        local_database.clear();
+        local_database_descriptor = cv::Mat(0, 32, CV_8UC1);
+        local_descriptor_to_id_map.clear();
 
         StatementPtr load_database_statement_ptr;
         load_database_statement_ptr.reset(cass_statement_new("select id, descriptor from mpg_keyspace.exhibits", 0));
@@ -75,7 +77,7 @@ namespace MPGDatabase
 
             std::cerr << "Query error (" << cass_error_desc(rc) << "): "
                       << std::string(message, message_length) << std::endl;
-            std::abort();
+            return false;
         }
 
         QueryResultPtr result(cass_future_get_result(query_future_ptr.get()));
@@ -93,23 +95,37 @@ namespace MPGDatabase
             const cass_byte_t *descriptor_data = nullptr;
             size_t descriptor_size = 0;
             cass_value_get_bytes(cass_row_get_column_by_name(row, "descriptor"), &descriptor_data, &descriptor_size);
-            if (descriptor_size != 100 * 32) {
-                std::cerr << "Descriptor size mismatch: expected 3200 (32 x 100), got " << descriptor_size << std::endl;
-                std::abort();
+            constexpr size_t descriptor_length = 32; // ORB: каждый дескриптор 32 байта
+            if (descriptor_size % descriptor_length != 0)
+            {
+                std::cerr << "Descriptor size mismatch: expected multiple of 32, got " << descriptor_size << std::endl;
+                return false;
             }
+            const int num_keypoints = static_cast<int>(descriptor_size / descriptor_length);
             std::vector<uint8_t> descriptor_buffer(descriptor_data, descriptor_data + descriptor_size);
-            cv::Mat descriptor_temp(100, 32, CV_8UC1, descriptor_buffer.data());
+            cv::Mat descriptor_temp(num_keypoints, descriptor_length, CV_8UC1, descriptor_buffer.data());
             cv::Mat descriptor = descriptor_temp.clone();
-            local_database.insert({id, std::move(descriptor)});
+
+            local_database_descriptor.push_back(descriptor);
+            for (int i = 0 ; i < descriptor.rows; ++i)
+                local_descriptor_to_id_map.push_back(id);
         }
 
-
+        return true;
     }
 
-    [[nodiscard]] std::optional<CassUuid> DatabaseModule::findExhibitUuid(const cv::Mat& description)
+    [[nodiscard]] std::optional<CassUuid> DatabaseModule::findExhibitUuid(const cv::Mat& exhibit_descriptor)
     {
         std::optional<CassUuid> id = std::nullopt;
+        // cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE_HAMMING);
+        // std::vector< std::vector<cv::DMatch> > knn_matches;
+        // knn_matches.reserve(100);
 
+        // for (const auto& [id, current_descriptor]: local_database)
+        // {
+        //     matcher->knnMatch(descr, test_unit.descriptor, knn_matches, k);
+        // }        
+        
 
         return id;
     }
@@ -118,9 +134,15 @@ namespace MPGDatabase
     {
         std::optional<DatabaseResponse> response = std::nullopt;
 
-
+        
 
         return response;
+    }
+
+    [[nodiscard]] bool DatabaseModule::addExhibit(const DatabaseRequest& exhibit_data)
+    {
+
+        return true;
     }
 
 }
