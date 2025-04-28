@@ -6,6 +6,10 @@
 #include <optional>
 #include <unordered_map>
 #include <optional>
+#include <queue>
+#include <opencv2/features2d/features2d.hpp>
+#include <mutex>
+#include <condition_variable>
 
 
 /**
@@ -25,6 +29,8 @@ protected:
     using IteratorPtr = std::unique_ptr <CassIterator, CassIteratorDeleter>;
 
     using QueryResultPtr = QueryResultHandler; 
+
+    using MatcherPtr = cv::Ptr<cv::DescriptorMatcher>;
 
 public:
 
@@ -52,6 +58,16 @@ protected:
 
     cv::Mat local_database_descriptor;
     std::vector<CassUuid> local_descriptor_to_id_map;
+
+private:
+
+    bool initMatchersPool();
+    MatcherPtr getMatcher();
+    void returnMatcher(MatcherPtr matcher);
+
+    std::queue<MatcherPtr> matchers_pool;
+    std::mutex matchers_pool_mtx;
+    std::condition_variable matchers_pool_cv;
 
 };
 

@@ -2,7 +2,6 @@
 #include <iostream>
 #include <thread>
 #include <cassert>
-#include <opencv2/features2d/features2d.hpp>
 
 
 namespace MPGDatabase
@@ -17,14 +16,21 @@ namespace MPGDatabase
         cluster_ptr.reset(cass_cluster_new());
         session_ptr.reset(cass_session_new());
         cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
-        
+    }
+
+    /**
+     * \brief Method for init connection to database (must be call after construction of DatabaseModule object)
+     * \todo Add config and logger
+     */
+    [[nodiscard]] bool DatabaseModule::init()
+    {
         if (!ConnectToDatabase(20, 10000))
         {
             std::cerr << "Cannot connect to database\n";
-            std::abort();
+            return false;
         }
 
-        loadDatabase();
+        return loadDatabase();
     }
 
     /**
@@ -143,6 +149,44 @@ namespace MPGDatabase
     {
 
         return true;
+    }
+
+    bool DatabaseModule::initMatchersPool()
+    {
+        matchers_pool = std::queue<MatcherPtr>();
+        const size_t pool_size = 10;
+
+        for (size_t i = 0; i < pool_size; ++i)
+        {
+            MatcherPtr matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE_HAMMING);
+            matcher->add(local_database_descriptor);
+            matcher->train();
+            matchers_pool.push(matcher);
+        }
+
+        return true;
+    }
+
+    DatabaseModule::MatcherPtr DatabaseModule::getMatcher()
+    {
+        std::unique_lock<std::mutex> ul(matchers_pool_mtx);
+
+        matchers_pool_cv.wait(ul, [this]
+                         { return !matchers_pool.empty(); });
+
+        MatcherPtr matcher = matchers_pool.front();
+        matchers_pool.pop();
+
+        return matcher;
+    }
+
+    void DatabaseModule::returnMatcher(MatcherPtr matcher)
+    {
+        {
+            std::lock_guard<std::mutex> lg(matchers_pool_mtx);
+            matchers_pool.push(matcher);
+        }
+        matchers_pool_cv.notify_one();
     }
 
 }
