@@ -83,6 +83,7 @@ namespace MPGDatabase
         std::string exhibit_name;
         std::string exhibit_description;
         cv::Mat exhibit_image;
+        cv::Mat exhibit_descriptor;
     };
 
 }

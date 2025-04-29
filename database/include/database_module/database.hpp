@@ -36,19 +36,19 @@ public:
 
     DatabaseModule();
 
-    ~DatabaseModule();
+    virtual ~DatabaseModule();
 
-    bool init();
+    virtual bool init();
 
-    std::optional<CassUuid> findExhibitUuid(const cv::Mat& description);
-    std::optional<DatabaseResponse> getExhibit(const CassUuid& exhibit_id);
-    bool addExhibit(const DatabaseRequest& exhibit_data);
+    virtual std::optional<CassUuid> findExhibitUuid(const cv::Mat& description);
+    virtual std::optional<DatabaseResponse> getExhibit(const CassUuid& exhibit_id);
+    virtual bool addExhibit(const DatabaseRequest& exhibit_data);
 
 
 protected:
 
-    bool ConnectToDatabase(size_t max_retries = 10, size_t retry_delay_ms = 5000);
-    bool loadDatabase();
+    virtual bool ConnectToDatabase(size_t max_retries = 10, size_t retry_delay_ms = 5000);
+    virtual bool loadDatabase();
 
 
     ClusterPtr cluster_ptr;
