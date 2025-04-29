@@ -61,6 +61,11 @@ protected:
 
 private:
 
+    bool loadDatabaseHelper(const CassRow* row);
+
+    void logGetExhibitError(CassError err, const std::string& context);
+    std::optional<DatabaseResponse> getExhibitHelper(const CassRow* row);
+
     bool initMatchersPool();
     MatcherPtr getMatcher();
     void returnMatcher(MatcherPtr matcher);

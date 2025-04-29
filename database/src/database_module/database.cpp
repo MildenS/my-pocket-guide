@@ -95,55 +95,190 @@ namespace MPGDatabase
         {
             const CassRow* row = cass_iterator_get_row(iter.get());
 
-            CassUuid id;
-            cass_value_get_uuid(cass_row_get_column_by_name(row, "id"), &id);
-
-            const cass_byte_t *descriptor_data = nullptr;
-            size_t descriptor_size = 0;
-            cass_value_get_bytes(cass_row_get_column_by_name(row, "descriptor"), &descriptor_data, &descriptor_size);
-            constexpr size_t descriptor_length = 32; // ORB: каждый дескриптор 32 байта
-            if (descriptor_size % descriptor_length != 0)
-            {
-                std::cerr << "Descriptor size mismatch: expected multiple of 32, got " << descriptor_size << std::endl;
+            if (!loadDatabaseHelper(row))
                 return false;
-            }
-            const int num_keypoints = static_cast<int>(descriptor_size / descriptor_length);
-            std::vector<uint8_t> descriptor_buffer(descriptor_data, descriptor_data + descriptor_size);
-            cv::Mat descriptor_temp(num_keypoints, descriptor_length, CV_8UC1, descriptor_buffer.data());
-            cv::Mat descriptor = descriptor_temp.clone();
-
-            local_database_descriptor.push_back(descriptor);
-            for (int i = 0 ; i < descriptor.rows; ++i)
-                local_descriptor_to_id_map.push_back(id);
         }
+
+        return true;
+    }
+
+    [[nodiscard]] bool DatabaseModule::loadDatabaseHelper(const CassRow* row)
+    {
+        CassUuid id;
+        cass_value_get_uuid(cass_row_get_column_by_name(row, "id"), &id);
+
+        const cass_byte_t *descriptor_data = nullptr;
+        size_t descriptor_size = 0;
+        cass_value_get_bytes(cass_row_get_column_by_name(row, "descriptor"), &descriptor_data, &descriptor_size);
+        constexpr size_t descriptor_length = 32; // ORB descriptor for one keypoint has 32 byres length
+        if (descriptor_size % descriptor_length != 0)
+        {
+            std::cerr << "Descriptor size mismatch: expected multiple of 32, got " << descriptor_size << std::endl;
+            return false;
+        }
+        const int num_keypoints = static_cast<int>(descriptor_size / descriptor_length);
+        std::vector<uint8_t> descriptor_buffer(descriptor_data, descriptor_data + descriptor_size);
+        cv::Mat descriptor_temp(num_keypoints, descriptor_length, CV_8UC1, descriptor_buffer.data());
+        cv::Mat descriptor = descriptor_temp.clone();
+
+        local_database_descriptor.push_back(descriptor);
+        for (int i = 0; i < descriptor.rows; ++i)
+            local_descriptor_to_id_map.push_back(id);
 
         return true;
     }
 
     [[nodiscard]] std::optional<CassUuid> DatabaseModule::findExhibitUuid(const cv::Mat& exhibit_descriptor)
     {
-        std::optional<CassUuid> id = std::nullopt;
-        // cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE_HAMMING);
-        // std::vector< std::vector<cv::DMatch> > knn_matches;
-        // knn_matches.reserve(100);
+        MatcherPtr matcher = getMatcher();
+        std::vector< std::vector<cv::DMatch> > knn_matches;
+        knn_matches.reserve(100);
+        const int k = 2;
 
-        // for (const auto& [id, current_descriptor]: local_database)
-        // {
-        //     matcher->knnMatch(descr, test_unit.descriptor, knn_matches, k);
-        // }        
+        matcher->knnMatch(exhibit_descriptor, knn_matches, k);       
+
+        if (knn_matches.size() == 0)
+        {
+            returnMatcher(matcher);
+            return std::nullopt;
+        }
         
+        const float ratio_threshold = 0.75f;
+        std::unordered_map<CassUuid, uint, std::hash<CassUuid>, CassUuidEqual> good_matches;
 
-        return id;
+        for (const auto& match: knn_matches)
+        {
+            if (match[0].distance < ratio_threshold * match[1].distance)
+            {
+                CassUuid best_match_id = local_descriptor_to_id_map[match[0].trainIdx];
+                if (good_matches.find(best_match_id) == good_matches.end())
+                    good_matches[best_match_id] = 1;
+                else
+                    good_matches[best_match_id]++; 
+            }
+        }
+
+        if (good_matches.size() == 0)
+        {
+            returnMatcher(matcher);
+            return std::nullopt;
+        }
+        CassUuid best_id;
+        uint best_count = 0;
+        for (const auto& [id, count]: good_matches)
+        {
+            if (count > best_count)
+            {
+                best_count = count;
+                best_id = id;
+            }
+        }
+
+
+        returnMatcher(matcher);
+        return best_id;
     }
 
     [[nodiscard]] std::optional<DatabaseResponse> DatabaseModule::getExhibit(const CassUuid& exhibit_id)
     {
-        std::optional<DatabaseResponse> response = std::nullopt;
+        /**
+         * table struct:
+         * * id CassUuid
+         * * descriptor blob
+         * * image blob
+         * * height int
+         * * width int
+         * * title text
+         * * desciption text
+         */
+        StatementPtr get_exhibit_statement_ptr;
+        get_exhibit_statement_ptr.reset(cass_statement_new("select image, height, width, title, description from mpg_keyspace.exhibits where id=", 1));
+        cass_statement_bind_uuid(get_exhibit_statement_ptr.get(), 0, exhibit_id);
+        FuturePtr query_future_ptr;
+        query_future_ptr.reset(cass_session_execute(session_ptr.get(), get_exhibit_statement_ptr.get()));
 
+        CassError rc = cass_future_error_code(query_future_ptr.get());
+        if (rc != CASS_OK)
+        {
+            const char *message;
+            size_t message_length;
+            cass_future_error_message(query_future_ptr.get(), &message, &message_length);
+
+            std::cerr << "Query error (" << cass_error_desc(rc) << "): "
+                      << std::string(message, message_length) << std::endl;
+            return std::nullopt;
+        }
+
+        QueryResultPtr result(cass_future_get_result(query_future_ptr.get()));
+
+        const CassRow* row = cass_result_first_row(result.get());  
+
+        return getExhibitHelper(row);
+    }
+
+    [[nodiscard]] std::optional<DatabaseResponse> DatabaseModule::getExhibitHelper(const CassRow* row)
+    {
+        const cass_byte_t *image_data = nullptr;
+        size_t image_size_bytes = 0;
+        int image_widht, image_height;
+        if (CassError err = cass_value_get_bytes(cass_row_get_column_by_name(row, "image"), &image_data, &image_size_bytes); err != CASS_OK)
+        {
+            logGetExhibitError(err, "Failed to get image from database row");
+            return std::nullopt;
+        };
+        if (CassError err = cass_value_get_int32(cass_row_get_column_by_name(row, "height"), &image_height); err != CASS_OK)
+        {
+            logGetExhibitError(err, "Failed to get image height from database row");
+            return std::nullopt;
+        }
+        if (CassError err = cass_value_get_int32(cass_row_get_column_by_name(row, "width"), &image_widht); err != CASS_OK)
+        {
+            logGetExhibitError(err, "Failed to get image width from database row");
+            return std::nullopt;
+        }
         
+        std::vector<uint8_t> image_buffer(image_data, image_data + image_size_bytes);
+        cv::Mat image_temp(image_height, image_widht, CV_8UC3, image_buffer.data());
+        cv::Mat exhibit_image = image_temp.clone();
 
+        const char *title_data;
+        size_t title_length;
+        CassError err = cass_value_get_string(cass_row_get_column_by_name(row, "title"), &title_data, &title_length);
+        if (err != CASS_OK)
+        {
+            logGetExhibitError(err, "Failed to get title from database row");
+            return std::nullopt;
+        }
+        std::string exhibit_title(title_data, title_length);
+
+
+        const char *decription_data;
+        size_t description_length;
+        err = cass_value_get_string(cass_row_get_column_by_name(row, "title"), &decription_data, &description_length);
+        if (err != CASS_OK)
+        {
+            logGetExhibitError(err, "Failed to get description from database row");
+            return std::nullopt;
+        }
+        std::string exhibit_description(decription_data, description_length);
+        
+        DatabaseResponse response;
+        response.exhibit_description = exhibit_description;
+        response.exhibit_image = exhibit_image;
+        response.exhibit_name = exhibit_title;
         return response;
     }
+
+    void DatabaseModule::logGetExhibitError(CassError err, const std::string& context)
+    {
+        std::cerr << "[Cassandra Error] " << cass_error_desc(err);
+        if (!context.empty())
+        {
+            std::cerr << " | Context: " << context;
+        }
+        std::cerr << std::endl;
+    }
+
 
     [[nodiscard]] bool DatabaseModule::addExhibit(const DatabaseRequest& exhibit_data)
     {
