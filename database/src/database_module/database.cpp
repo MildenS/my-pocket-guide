@@ -1,7 +1,8 @@
 #include "database_module/database.hpp"
 #include <iostream>
 #include <thread>
-#include <cassert>
+
+#include <opencv2/imgcodecs.hpp>
 
 
 namespace MPGDatabase
@@ -15,6 +16,7 @@ namespace MPGDatabase
     {
         cluster_ptr.reset(cass_cluster_new());
         session_ptr.reset(cass_session_new());
+        id_generator_ptr.reset(cass_uuid_gen_new());
         cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
     }
 
@@ -192,7 +194,7 @@ namespace MPGDatabase
          * * desciption text
          */
         StatementPtr get_exhibit_statement_ptr;
-        get_exhibit_statement_ptr.reset(cass_statement_new("select image, height, width, title, description from mpg_keyspace.exhibits where id=", 1));
+        get_exhibit_statement_ptr.reset(cass_statement_new("select image, height, width, title, description from mpg_keyspace.exhibits where id=?", 1));
         cass_statement_bind_uuid(get_exhibit_statement_ptr.get(), 0, exhibit_id);
         FuturePtr query_future_ptr;
         query_future_ptr.reset(cass_session_execute(session_ptr.get(), get_exhibit_statement_ptr.get()));
@@ -223,17 +225,17 @@ namespace MPGDatabase
         int image_widht, image_height;
         if (CassError err = cass_value_get_bytes(cass_row_get_column_by_name(row, "image"), &image_data, &image_size_bytes); err != CASS_OK)
         {
-            logGetExhibitError(err, "Failed to get image from database row");
+            logError(err, "Failed to get image from database row");
             return std::nullopt;
         };
         if (CassError err = cass_value_get_int32(cass_row_get_column_by_name(row, "height"), &image_height); err != CASS_OK)
         {
-            logGetExhibitError(err, "Failed to get image height from database row");
+            logError(err, "Failed to get image height from database row");
             return std::nullopt;
         }
         if (CassError err = cass_value_get_int32(cass_row_get_column_by_name(row, "width"), &image_widht); err != CASS_OK)
         {
-            logGetExhibitError(err, "Failed to get image width from database row");
+            logError(err, "Failed to get image width from database row");
             return std::nullopt;
         }
         
@@ -246,7 +248,7 @@ namespace MPGDatabase
         CassError err = cass_value_get_string(cass_row_get_column_by_name(row, "title"), &title_data, &title_length);
         if (err != CASS_OK)
         {
-            logGetExhibitError(err, "Failed to get title from database row");
+            logError(err, "Failed to get title from database row");
             return std::nullopt;
         }
         std::string exhibit_title(title_data, title_length);
@@ -257,7 +259,7 @@ namespace MPGDatabase
         err = cass_value_get_string(cass_row_get_column_by_name(row, "title"), &decription_data, &description_length);
         if (err != CASS_OK)
         {
-            logGetExhibitError(err, "Failed to get description from database row");
+            logError(err, "Failed to get description from database row");
             return std::nullopt;
         }
         std::string exhibit_description(decription_data, description_length);
@@ -269,7 +271,7 @@ namespace MPGDatabase
         return response;
     }
 
-    void DatabaseModule::logGetExhibitError(CassError err, const std::string& context)
+    void DatabaseModule::logError(CassError err, const std::string& context)
     {
         std::cerr << "[Cassandra Error] " << cass_error_desc(err);
         if (!context.empty())
@@ -282,6 +284,67 @@ namespace MPGDatabase
 
     [[nodiscard]] bool DatabaseModule::addExhibit(const DatabaseRequest& exhibit_data)
     {
+        StatementPtr add_exhibit_statement_ptr;
+        add_exhibit_statement_ptr.reset(
+            cass_statement_new("insert into mpg_keyspace.exhibits (id, image, height, width, title, description, descriptor) values (?, ?, ?, ?, ?, ?, ?)", 6));
+        CassUuid exhibit_id;
+        cass_uuid_gen_random(id_generator_ptr.get(), &exhibit_id);
+        if (auto err = cass_statement_bind_uuid(add_exhibit_statement_ptr.get(), 0, exhibit_id); err != CASS_OK)
+        {
+            logError(err, "Bind id to add new exhibit query");
+            return false;
+        }
+        if (auto err = cass_statement_bind_bytes(add_exhibit_statement_ptr.get(), 1, 
+                                  reinterpret_cast<const cass_byte_t*>(exhibit_data.exhibit_image.data),
+                                  exhibit_data.exhibit_image.total() * exhibit_data.exhibit_image.elemSize()); err != CASS_OK)
+        {
+            logError(err, "Bind image data to add new exhibit query");
+            return false;
+        }
+
+        cv::Size exhibit_image_size = exhibit_data.exhibit_image.size();
+        if (auto err = cass_statement_bind_int32(add_exhibit_statement_ptr.get(), 2, exhibit_image_size.height); err != CASS_OK)
+        {
+            logError(err, "Bind image height to add new exhibit query");
+            return false;
+        }
+        if (auto err = cass_statement_bind_int32(add_exhibit_statement_ptr.get(), 3, exhibit_image_size.width); err != CASS_OK)
+        {
+            logError(err, "Bind image width to add new exhibit query");
+            return false;
+        }
+        if (auto err = cass_statement_bind_string(add_exhibit_statement_ptr.get(), 4, exhibit_data.exhibit_title.c_str()); err != CASS_OK)
+        {
+            logError(err, "Bind image title to add new exhibit query");
+            return false;
+        }
+        if (auto err = cass_statement_bind_string(add_exhibit_statement_ptr.get(), 5, exhibit_data.exhibit_description.c_str()); err != CASS_OK)
+        {
+            logError(err, "Bind image description to add new exhibit query");
+            return false;
+        }
+        if (auto err = cass_statement_bind_bytes(add_exhibit_statement_ptr.get(), 6, 
+                                  reinterpret_cast<const cass_byte_t*>(exhibit_data.exhibit_descriptor.data),
+                                  exhibit_data.exhibit_image.total() * exhibit_data.exhibit_descriptor.elemSize()); err != CASS_OK)
+        {
+            logError(err, "Bind image descriptor to add new exhibit query");
+            return false;
+        }
+
+        FuturePtr query_future_ptr;
+        query_future_ptr.reset(cass_session_execute(session_ptr.get(), add_exhibit_statement_ptr.get()));
+
+        CassError rc = cass_future_error_code(query_future_ptr.get());
+        if (rc != CASS_OK)
+        {
+            const char *message;
+            size_t message_length;
+            cass_future_error_message(query_future_ptr.get(), &message, &message_length);
+
+            std::cerr << "Query error (" << cass_error_desc(rc) << "): "
+                      << std::string(message, message_length) << std::endl;
+            return false;
+        }
 
         return true;
     }

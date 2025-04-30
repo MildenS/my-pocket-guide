@@ -47,6 +47,14 @@ namespace MPGDatabase
         }
     };
 
+    struct CassUuidGenDeleter
+    {
+        void operator()(CassUuidGen *ptr) const
+        {
+            cass_uuid_gen_free(ptr);
+        }
+    };
+
     class QueryResultHandler
     {
     public:
@@ -80,7 +88,7 @@ namespace MPGDatabase
 
     struct DatabaseRequest
     {
-        std::string exhibit_name;
+        std::string exhibit_title;
         std::string exhibit_description;
         cv::Mat exhibit_image;
         cv::Mat exhibit_descriptor;
@@ -95,7 +103,6 @@ namespace std {
             std::size_t h1 = std::hash<cass_uint64_t>{}(uuid.time_and_version);
             std::size_t h2 = std::hash<cass_uint64_t>{}(uuid.clock_seq_and_node);
     
-            // Хорошее комбинирование двух хешей
             return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
         }
     };

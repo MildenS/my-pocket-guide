@@ -7,5 +7,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra -Wpedantic -Wunused-result -Wunused)
 endif()
 
+option(MPG_BUILD_TESTS "Build tests" ON)
+
 add_subdirectory(database)
 add_subdirectory(server)
+add_subdirectory(tests)

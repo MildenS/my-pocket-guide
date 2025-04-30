@@ -27,6 +27,7 @@ protected:
     using FuturePtr = std::unique_ptr <CassFuture, CassFutureDeleter>;
     using StatementPtr = std::unique_ptr <CassStatement, CassStatementDeleter>;
     using IteratorPtr = std::unique_ptr <CassIterator, CassIteratorDeleter>;
+    using IdGeneratorPtr = std::unique_ptr <CassUuidGen, CassUuidGenDeleter>;
 
     using QueryResultPtr = QueryResultHandler; 
 
@@ -53,6 +54,7 @@ protected:
 
     ClusterPtr cluster_ptr;
     SessionPtr session_ptr;
+    IdGeneratorPtr id_generator_ptr;
 
     //std::unordered_map<CassUuid, cv::Mat, std::hash<CassUuid>, CassUuidEqual> local_database;
 
@@ -63,7 +65,7 @@ private:
 
     bool loadDatabaseHelper(const CassRow* row);
 
-    void logGetExhibitError(CassError err, const std::string& context);
+    void logError(CassError err, const std::string& context);
     std::optional<DatabaseResponse> getExhibitHelper(const CassRow* row);
 
     bool initMatchersPool();
