@@ -5,7 +5,7 @@
 #include <opencv2/imgcodecs.hpp>
 
 
-namespace MPGDatabase
+namespace MPG
 {
 
     /**
@@ -181,7 +181,7 @@ namespace MPGDatabase
         return best_id;
     }
 
-    [[nodiscard]] std::optional<DatabaseResponse> DatabaseModule::getExhibit(const CassUuid& exhibit_id)
+    [[nodiscard]] std::optional<DatabaseResponse> DatabaseModule::getExhibit(const cv::Mat& description)
     {
         /**
          * table struct:
@@ -193,9 +193,16 @@ namespace MPGDatabase
          * * title text
          * * desciption text
          */
+        std::optional<CassUuid> exhibit_id = findExhibitUuid(description);
+        if (!exhibit_id.has_value())
+        {
+            std::cerr << "Couldn't found id for exhibit\n";
+            return std::nullopt;
+        }
+
         StatementPtr get_exhibit_statement_ptr;
         get_exhibit_statement_ptr.reset(cass_statement_new("select image, height, width, title, description from mpg_keyspace.exhibits where id=?", 1));
-        cass_statement_bind_uuid(get_exhibit_statement_ptr.get(), 0, exhibit_id);
+        cass_statement_bind_uuid(get_exhibit_statement_ptr.get(), 0, exhibit_id.value());
         FuturePtr query_future_ptr;
         query_future_ptr.reset(cass_session_execute(session_ptr.get(), get_exhibit_statement_ptr.get()));
 

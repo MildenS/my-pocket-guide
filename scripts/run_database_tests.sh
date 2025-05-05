@@ -1,0 +1,1 @@
+cd ../build/tests/database_tests && ./database_tests ../../../data/test_data/1

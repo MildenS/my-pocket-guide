@@ -15,7 +15,7 @@
 /**
 * \brief Namespace for MPG database classes and functions
 */
-namespace MPGDatabase
+namespace MPG
 {
 
 class DatabaseModule
@@ -41,8 +41,7 @@ public:
 
     virtual bool init();
 
-    virtual std::optional<CassUuid> findExhibitUuid(const cv::Mat& description);
-    virtual std::optional<DatabaseResponse> getExhibit(const CassUuid& exhibit_id);
+    virtual std::optional<DatabaseResponse> getExhibit(const cv::Mat& description);
     virtual bool addExhibit(const DatabaseRequest& exhibit_data);
 
 
@@ -50,6 +49,8 @@ protected:
 
     virtual bool ConnectToDatabase(size_t max_retries = 10, size_t retry_delay_ms = 5000);
     virtual bool loadDatabase();
+
+    virtual std::optional<CassUuid> findExhibitUuid(const cv::Mat& description);
 
 
     ClusterPtr cluster_ptr;

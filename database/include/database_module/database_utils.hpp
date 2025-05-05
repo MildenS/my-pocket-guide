@@ -5,7 +5,7 @@
 #include <memory>
 #include <opencv2/core.hpp>
 
-namespace MPGDatabase
+namespace MPG
 {
     struct CassClusterDeleter
     {
