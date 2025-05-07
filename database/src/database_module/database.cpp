@@ -32,7 +32,18 @@ namespace MPG
             return false;
         }
 
-        return loadDatabase();
+        if (!loadDatabase())
+        {
+            std::cerr << "Error load local database\n";
+            return false;
+        }
+
+        if (!initMatchersPool())
+        {
+            std::cerr << "Error init matchrs pool\n";
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -62,7 +73,7 @@ namespace MPG
 
     DatabaseModule::~DatabaseModule()
     {
-        std::cout << "Finish work of database module\n";
+        //std::cout << "Finish work of database module\n";
     }
 
     
@@ -137,11 +148,11 @@ namespace MPG
         knn_matches.reserve(100);
         const int k = 2;
 
-        matcher->knnMatch(exhibit_descriptor, knn_matches, k);       
+        matcher->knnMatch(exhibit_descriptor, knn_matches, k);
+        returnMatcher(matcher);       
 
         if (knn_matches.size() == 0)
         {
-            returnMatcher(matcher);
             return std::nullopt;
         }
         
@@ -162,7 +173,6 @@ namespace MPG
 
         if (good_matches.size() == 0)
         {
-            returnMatcher(matcher);
             return std::nullopt;
         }
         CassUuid best_id;
@@ -176,8 +186,6 @@ namespace MPG
             }
         }
 
-
-        returnMatcher(matcher);
         return best_id;
     }
 
@@ -199,6 +207,7 @@ namespace MPG
             std::cerr << "Couldn't found id for exhibit\n";
             return std::nullopt;
         }
+
 
         StatementPtr get_exhibit_statement_ptr;
         get_exhibit_statement_ptr.reset(cass_statement_new("select image, height, width, title, description from mpg_keyspace.exhibits where id=?", 1));
@@ -293,7 +302,7 @@ namespace MPG
     {
         StatementPtr add_exhibit_statement_ptr;
         add_exhibit_statement_ptr.reset(
-            cass_statement_new("insert into mpg_keyspace.exhibits (id, image, height, width, title, description, descriptor) values (?, ?, ?, ?, ?, ?, ?)", 6));
+            cass_statement_new("insert into mpg_keyspace.exhibits (id, image, height, width, title, description, descriptor) values (?, ?, ?, ?, ?, ?, ?)", 7));
         CassUuid exhibit_id;
         cass_uuid_gen_random(id_generator_ptr.get(), &exhibit_id);
         if (auto err = cass_statement_bind_uuid(add_exhibit_statement_ptr.get(), 0, exhibit_id); err != CASS_OK)
@@ -352,6 +361,15 @@ namespace MPG
                       << std::string(message, message_length) << std::endl;
             return false;
         }
+
+        std::unique_lock<std::mutex> ul(local_database_mtx);
+        local_database_descriptor.push_back(exhibit_data.exhibit_descriptor);
+        for (size_t i = 0; i < exhibit_data.exhibit_descriptor.rows; ++i)
+        {
+            local_descriptor_to_id_map.push_back(exhibit_id);
+        }
+
+        //initMatchersPool();
 
         return true;
     }
