@@ -77,6 +77,8 @@ private:
     std::mutex matchers_pool_mtx;
     std::condition_variable matchers_pool_cv;
 
+    std::mutex local_database_mtx;
+
 };
 
 }
