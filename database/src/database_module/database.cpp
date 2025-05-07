@@ -143,12 +143,12 @@ namespace MPG
 
     [[nodiscard]] std::optional<CassUuid> DatabaseModule::findExhibitUuid(const cv::Mat& exhibit_descriptor)
     {
-        MatcherPtr matcher = getMatcher();
+        PooledMatcher matcher = getMatcher();
         std::vector< std::vector<cv::DMatch> > knn_matches;
         knn_matches.reserve(100);
         const int k = 2;
 
-        matcher->knnMatch(exhibit_descriptor, knn_matches, k);
+        matcher.matcher->knnMatch(exhibit_descriptor, knn_matches, k);
         returnMatcher(matcher);       
 
         if (knn_matches.size() == 0)
@@ -364,19 +364,19 @@ namespace MPG
 
         std::unique_lock<std::mutex> ul(local_database_mtx);
         local_database_descriptor.push_back(exhibit_data.exhibit_descriptor);
-        for (size_t i = 0; i < exhibit_data.exhibit_descriptor.rows; ++i)
+        for (int i = 0; i < exhibit_data.exhibit_descriptor.rows; ++i)
         {
             local_descriptor_to_id_map.push_back(exhibit_id);
         }
 
-        //initMatchersPool();
+        initMatchersPool();
 
         return true;
     }
 
     bool DatabaseModule::initMatchersPool()
     {
-        matchers_pool = std::queue<MatcherPtr>();
+        std::shared_ptr<MatcherPool> new_pool = std::make_shared<MatcherPool>();
         const size_t pool_size = 10;
 
         for (size_t i = 0; i < pool_size; ++i)
@@ -384,32 +384,44 @@ namespace MPG
             MatcherPtr matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE_HAMMING);
             matcher->add(local_database_descriptor);
             matcher->train();
-            matchers_pool.push(matcher);
+            new_pool->pool.push(matcher);
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(matchers_pool_switch_mtx);
+            matchers_pool = new_pool; 
         }
 
         return true;
     }
 
-    DatabaseModule::MatcherPtr DatabaseModule::getMatcher()
+    PooledMatcher DatabaseModule::getMatcher()
     {
-        std::unique_lock<std::mutex> ul(matchers_pool_mtx);
-
-        matchers_pool_cv.wait(ul, [this]
-                         { return !matchers_pool.empty(); });
-
-        MatcherPtr matcher = matchers_pool.front();
-        matchers_pool.pop();
-
-        return matcher;
-    }
-
-    void DatabaseModule::returnMatcher(MatcherPtr matcher)
-    {
+        std::shared_ptr<MatcherPool> current_pool;
         {
-            std::lock_guard<std::mutex> lg(matchers_pool_mtx);
-            matchers_pool.push(matcher);
+            std::lock_guard<std::mutex> lock(matchers_pool_switch_mtx);
+            current_pool = matchers_pool;
         }
-        matchers_pool_cv.notify_one();
+
+        std::unique_lock<std::mutex> ul(current_pool->mtx);
+        current_pool->cv.wait(ul, [&current_pool]
+                              { return !current_pool->pool.empty(); });
+
+        MatcherPtr matcher = current_pool->pool.front();
+        current_pool->pool.pop();
+
+        return {matcher, current_pool};
     }
 
+    void DatabaseModule::returnMatcher(PooledMatcher matcher)
+    {
+        const auto &origin_pool = matcher.origin_pool_ptr;
+
+        {
+            std::lock_guard<std::mutex> lg(origin_pool->mtx);
+            origin_pool->pool.push(matcher.matcher);
+        }
+
+        origin_pool->cv.notify_one();
+    }
 }

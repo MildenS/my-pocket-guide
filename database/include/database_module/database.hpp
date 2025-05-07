@@ -2,15 +2,7 @@
 
 #include <database_module/database_utils.hpp>
 #include <cassandra.h>
-#include <memory>
 #include <optional>
-#include <unordered_map>
-#include <optional>
-#include <queue>
-#include <opencv2/features2d/features2d.hpp>
-#include <mutex>
-#include <condition_variable>
-
 
 /**
 * \brief Namespace for MPG database classes and functions
@@ -32,6 +24,7 @@ protected:
     using QueryResultPtr = QueryResultHandler; 
 
     using MatcherPtr = cv::Ptr<cv::DescriptorMatcher>;
+
 
 public:
 
@@ -57,7 +50,6 @@ protected:
     SessionPtr session_ptr;
     IdGeneratorPtr id_generator_ptr;
 
-    //std::unordered_map<CassUuid, cv::Mat, std::hash<CassUuid>, CassUuidEqual> local_database;
 
     cv::Mat local_database_descriptor;
     std::vector<CassUuid> local_descriptor_to_id_map;
@@ -70,12 +62,11 @@ private:
     std::optional<DatabaseResponse> getExhibitHelper(const CassRow* row);
 
     bool initMatchersPool();
-    MatcherPtr getMatcher();
-    void returnMatcher(MatcherPtr matcher);
+    PooledMatcher getMatcher();
+    void returnMatcher(PooledMatcher matcher);
 
-    std::queue<MatcherPtr> matchers_pool;
-    std::mutex matchers_pool_mtx;
-    std::condition_variable matchers_pool_cv;
+    std::shared_ptr<MatcherPool> matchers_pool;
+    std::mutex matchers_pool_switch_mtx;
 
     std::mutex local_database_mtx;
 

@@ -4,6 +4,11 @@
 #include <string>
 #include <memory>
 #include <opencv2/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <memory>
 
 namespace MPG
 {
@@ -92,6 +97,19 @@ namespace MPG
         std::string exhibit_description;
         cv::Mat exhibit_image;
         cv::Mat exhibit_descriptor;
+    };
+
+    struct MatcherPool
+    {
+        std::mutex mtx;
+        std::condition_variable cv;
+        std::queue<cv::Ptr<cv::DescriptorMatcher>> pool;
+    };
+
+    struct PooledMatcher
+    {
+        cv::Ptr<cv::DescriptorMatcher> matcher;
+        std::shared_ptr<MatcherPool> origin_pool_ptr;
     };
 
 }
