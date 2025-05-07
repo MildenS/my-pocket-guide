@@ -1,4 +1,5 @@
 version: "3.9"
+
 services:
   cassandra:
     image: cassandra:latest
@@ -10,11 +11,27 @@ services:
     environment:
       - CASSANDRA_CLUSTER_NAME=MPGCluster
       - CASSANDRA_SEEDS=my-cassandra
-    # healthcheck:
-    #   test: ["CMD", "cqlsh", "-e", "SELECT * FROM system.local"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "SELECT now() FROM system.local"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  cassandra-init:
+    image: cassandra:latest
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        echo 'Creating keyspace...'
+        cqlsh my-cassandra -e "CREATE KEYSPACE IF NOT EXISTS mpg_keyspace WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};"
+
+        echo 'Creating table mpg_keyspace.exhibits...'
+        cqlsh my-cassandra -e "CREATE TABLE IF NOT EXISTS mpg_keyspace.exhibits (id uuid PRIMARY KEY, descriptor blob, image blob, height int, width int, title text, description text);"
 
 volumes:
   cassandra_data:
