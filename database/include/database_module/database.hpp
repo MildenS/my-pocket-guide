@@ -2,6 +2,7 @@
 
 #include <database_module/database_utils.hpp>
 #include <config.hpp>
+#include <logger.hpp>
 #include <cassandra.h>
 #include <optional>
 
@@ -30,7 +31,7 @@ protected:
 public:
 
     DatabaseModule();
-    DatabaseModule(std::shared_ptr<Config> conf);
+    DatabaseModule(std::shared_ptr<Config> conf, std::shared_ptr<Logger> log);
 
     virtual ~DatabaseModule();
 
@@ -57,6 +58,7 @@ protected:
     std::vector<CassUuid> local_descriptor_to_id_map;
 
     std::shared_ptr<Config> config;
+    std::shared_ptr<Logger> logger;
 
 private:
 

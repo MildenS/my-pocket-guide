@@ -15,15 +15,18 @@ namespace MPG
     DatabaseModule::DatabaseModule()
     {
         config = std::make_shared<Config>();
+        logger = std::make_shared<Logger>();
         cluster_ptr.reset(cass_cluster_new());
         session_ptr.reset(cass_session_new());
         id_generator_ptr.reset(cass_uuid_gen_new());
         cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
+        logger->LogInfo("Database module created");
     }
 
-    DatabaseModule::DatabaseModule(std::shared_ptr<Config> conf)
+    DatabaseModule::DatabaseModule(std::shared_ptr<Config> conf, std::shared_ptr<Logger> log)
     {
         config = conf;
+        log = logger;
         DatabaseModule();
     }
 
@@ -35,21 +38,22 @@ namespace MPG
     {
         if (!ConnectToDatabase(config->max_connect_retries, config->connect_retry_delay_ms))
         {
-            std::cerr << "Cannot connect to database\n";
+            logger->LogCritical("Cannot connect to database\n");
             return false;
         }
 
         if (!loadDatabase())
         {
-            std::cerr << "Error load local database\n";
+            logger->LogCritical("Error load local database\n");
             return false;
         }
 
         if (!initMatchersPool())
         {
-            std::cerr << "Error init matchrs pool\n";
+            logger->LogCritical("Error init matchrs pool\n");
             return false;
         }
+        logger->LogInfo("Database module initialized");
         return true;
     }
 
@@ -68,11 +72,12 @@ namespace MPG
             CassError rc = cass_future_error_code(connect_future_ptr.get());
             if (rc == CASS_OK)
                 return true;
-            std::cerr << "Connection failed (attempt " << i + 1 << "/" << max_retries << "). Retrying in " << retry_delay_ms << " ms...\n";
+            logger->LogWarning("Connection failed (attempt " + std::to_string(i + 1) + "/" + std::to_string(max_retries) +
+             "). Retrying in "  + std::to_string(retry_delay_ms) + " ms...\n");
             const char *message;
             size_t message_length;
             cass_future_error_message(connect_future_ptr.get(), &message, &message_length);
-            std::cerr << "Connection error: " << std::string(message, message_length) << std::endl;
+            logger->LogWarning("Connection error: " + std::string(message, message_length));
             std::this_thread::sleep_for(std::chrono::milliseconds(retry_delay_ms));
         }
         return false;
@@ -80,7 +85,7 @@ namespace MPG
 
     DatabaseModule::~DatabaseModule()
     {
-        //std::cout << "Finish work of database module\n";
+        logger->LogInfo("Finish work of database module");
     }
 
     
@@ -101,8 +106,7 @@ namespace MPG
             size_t message_length;
             cass_future_error_message(query_future_ptr.get(), &message, &message_length);
 
-            std::cerr << "Query error (" << cass_error_desc(rc) << "): "
-                      << std::string(message, message_length) << std::endl;
+            logger->LogError("Query error (" + std::string(cass_error_desc(rc)) + "): " + std::string(message, message_length));
             return false;
         }
 
@@ -133,7 +137,7 @@ namespace MPG
         constexpr size_t descriptor_length = 32; // ORB descriptor for one keypoint has 32 bytes length
         if (descriptor_size % descriptor_length != 0)
         {
-            std::cerr << "Descriptor size mismatch: expected multiple of 32, got " << descriptor_size << std::endl;
+            logger->LogError("DatabaseModule: Descriptor size mismatch: expected multiple of 32, got " + std::to_string(descriptor_size));
             return false;
         }
         const int num_keypoints = static_cast<int>(descriptor_size / descriptor_length);
@@ -211,7 +215,7 @@ namespace MPG
         std::optional<CassUuid> exhibit_id = findExhibitUuid(description);
         if (!exhibit_id.has_value())
         {
-            std::cerr << "Couldn't found id for exhibit\n";
+            logger->LogError("DatabaseModule: Couldn't found id for exhibit");
             return std::nullopt;
         }
 
@@ -229,8 +233,8 @@ namespace MPG
             size_t message_length;
             cass_future_error_message(query_future_ptr.get(), &message, &message_length);
 
-            std::cerr << "Query error (" << cass_error_desc(rc) << "): "
-                      << std::string(message, message_length) << std::endl;
+            logger->LogError("DatabaseModule: Query error (" + std::string(cass_error_desc(rc)) + "): " + 
+                    std::string(message, message_length));
             return std::nullopt;
         }
 
@@ -296,12 +300,11 @@ namespace MPG
 
     void DatabaseModule::logError(CassError err, const std::string& context)
     {
-        std::cerr << "[Cassandra Error] " << cass_error_desc(err);
+        logger->LogError("[Cassandra Error] " + std::string(cass_error_desc(err)));
         if (!context.empty())
         {
-            std::cerr << " | Context: " << context;
+            logger->LogError(" | Context: " + context);
         }
-        std::cerr << std::endl;
     }
 
 
@@ -364,8 +367,8 @@ namespace MPG
             size_t message_length;
             cass_future_error_message(query_future_ptr.get(), &message, &message_length);
 
-            std::cerr << "Query error (" << cass_error_desc(rc) << "): "
-                      << std::string(message, message_length) << std::endl;
+            logger->LogError("DatabaseModule: Query error (" + std::string(cass_error_desc(rc)) + "): " + 
+                        std::string(message, message_length));
             return false;
         }
 

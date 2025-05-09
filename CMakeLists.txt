@@ -11,6 +11,7 @@ endif()
 
 option(MPG_BUILD_TESTS "Build tests" ON)
 
+add_subdirectory(utils)
 add_subdirectory(thirdparty)
 add_subdirectory(database)
 add_subdirectory(server)

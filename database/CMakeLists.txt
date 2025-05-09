@@ -6,6 +6,7 @@ find_package(OpenCV REQUIRED)
 
 add_library(${MPG_DATABASE_LIBRARY} src/database_module/database.cpp)
 
+
 set(DATABASE_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/database/include
     ${CMAKE_SOURCE_DIR}/thirdparty/cpp-driver/include
@@ -18,6 +19,7 @@ target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC ${DATABASE_INCLUDE_DIR
 
 target_link_libraries(${MPG_DATABASE_LIBRARY} ${OpenCV_LIBS})
 target_link_libraries(${MPG_DATABASE_LIBRARY} cassandra)
+target_link_libraries(${MPG_DATABASE_LIBRARY} utils)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 
