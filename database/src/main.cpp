@@ -8,7 +8,7 @@
 int main()
 {
 
-  MPGDatabase::DatabaseModule db;       
+  MPG::DatabaseModule db;       
   db.init();
 }
 
