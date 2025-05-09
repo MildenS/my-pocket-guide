@@ -9,6 +9,7 @@ add_library(${MPG_DATABASE_LIBRARY} src/database_module/database.cpp)
 set(DATABASE_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/database/include
     ${CMAKE_SOURCE_DIR}/thirdparty/cpp-driver/include
+    ${CMAKE_SOURCE_DIR}/utils
     ${OpenCV_INCLUDE_DIRS} CACHE PATH "Include directories for database"
 )
 message(STATUS "DATABASE_INCLUDE_DIRS: ${DATABASE_INCLUDE_DIRS}")

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <database_module/database_utils.hpp>
+#include <config.hpp>
 #include <cassandra.h>
 #include <optional>
 
@@ -29,6 +30,7 @@ protected:
 public:
 
     DatabaseModule();
+    DatabaseModule(std::shared_ptr<Config> conf);
 
     virtual ~DatabaseModule();
 
@@ -53,6 +55,8 @@ protected:
 
     cv::Mat local_database_descriptor;
     std::vector<CassUuid> local_descriptor_to_id_map;
+
+    std::shared_ptr<Config> config;
 
 private:
 

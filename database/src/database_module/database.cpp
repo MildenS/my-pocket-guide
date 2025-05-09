@@ -14,10 +14,17 @@ namespace MPG
      */
     DatabaseModule::DatabaseModule()
     {
+        config = std::make_shared<Config>();
         cluster_ptr.reset(cass_cluster_new());
         session_ptr.reset(cass_session_new());
         id_generator_ptr.reset(cass_uuid_gen_new());
         cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
+    }
+
+    DatabaseModule::DatabaseModule(std::shared_ptr<Config> conf)
+    {
+        config = conf;
+        DatabaseModule();
     }
 
     /**
@@ -26,7 +33,7 @@ namespace MPG
      */
     [[nodiscard]] bool DatabaseModule::init()
     {
-        if (!ConnectToDatabase(20, 10000))
+        if (!ConnectToDatabase(config->max_connect_retries, config->connect_retry_delay_ms))
         {
             std::cerr << "Cannot connect to database\n";
             return false;
@@ -79,7 +86,7 @@ namespace MPG
     
     [[nodiscard]] bool DatabaseModule::loadDatabase()
     {
-        local_database_descriptor = cv::Mat(0, 32, CV_8UC1);
+        local_database_descriptor = cv::Mat(0, 32, CV_8UC1); // 32 - size of ORB descriptor
         local_descriptor_to_id_map.clear();
 
         StatementPtr load_database_statement_ptr;
@@ -123,7 +130,7 @@ namespace MPG
         const cass_byte_t *descriptor_data = nullptr;
         size_t descriptor_size = 0;
         cass_value_get_bytes(cass_row_get_column_by_name(row, "descriptor"), &descriptor_data, &descriptor_size);
-        constexpr size_t descriptor_length = 32; // ORB descriptor for one keypoint has 32 byres length
+        constexpr size_t descriptor_length = 32; // ORB descriptor for one keypoint has 32 bytes length
         if (descriptor_size % descriptor_length != 0)
         {
             std::cerr << "Descriptor size mismatch: expected multiple of 32, got " << descriptor_size << std::endl;
@@ -145,7 +152,7 @@ namespace MPG
     {
         PooledMatcher matcher = getMatcher();
         std::vector< std::vector<cv::DMatch> > knn_matches;
-        knn_matches.reserve(100);
+        knn_matches.reserve(config->max_matches_count);
         const int k = 2;
 
         matcher.matcher->knnMatch(exhibit_descriptor, knn_matches, k);
@@ -156,7 +163,7 @@ namespace MPG
             return std::nullopt;
         }
         
-        const float ratio_threshold = 0.75f;
+        const float ratio_threshold = config->match_ratio_threshold;
         std::unordered_map<CassUuid, uint, std::hash<CassUuid>, CassUuidEqual> good_matches;
 
         for (const auto& match: knn_matches)
@@ -377,7 +384,7 @@ namespace MPG
     bool DatabaseModule::initMatchersPool()
     {
         std::shared_ptr<MatcherPool> new_pool = std::make_shared<MatcherPool>();
-        const size_t pool_size = 10;
+        const size_t pool_size = config->matchers_pool_size;
 
         for (size_t i = 0; i < pool_size; ++i)
         {
