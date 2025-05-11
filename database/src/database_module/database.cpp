@@ -14,8 +14,10 @@ namespace MPG
      */
     DatabaseModule::DatabaseModule()
     {
-        config = std::make_shared<Config>();
-        logger = std::make_shared<Logger>();
+        if (!config)
+            config = std::make_shared<Config>();
+        if (!logger)
+            logger = std::make_shared<Logger>();
         cluster_ptr.reset(cass_cluster_new());
         session_ptr.reset(cass_session_new());
         id_generator_ptr.reset(cass_uuid_gen_new());
@@ -23,10 +25,10 @@ namespace MPG
         logger->LogInfo("Database module created");
     }
 
-    DatabaseModule::DatabaseModule(std::shared_ptr<Config> conf, std::shared_ptr<Logger> log)
+    DatabaseModule::DatabaseModule(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log)
     {
         config = conf;
-        log = logger;
+        logger = log;
         DatabaseModule();
     }
 

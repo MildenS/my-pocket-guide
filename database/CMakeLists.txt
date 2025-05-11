@@ -21,6 +21,6 @@ target_link_libraries(${MPG_DATABASE_LIBRARY} ${OpenCV_LIBS})
 target_link_libraries(${MPG_DATABASE_LIBRARY} cassandra)
 target_link_libraries(${MPG_DATABASE_LIBRARY} utils)
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+#add_executable(${PROJECT_NAME} src/main.cpp)
 
-target_link_libraries(${PROJECT_NAME} ${MPG_DATABASE_LIBRARY})
+#target_link_libraries(${PROJECT_NAME} ${MPG_DATABASE_LIBRARY})

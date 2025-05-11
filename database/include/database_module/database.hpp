@@ -31,7 +31,7 @@ protected:
 public:
 
     DatabaseModule();
-    DatabaseModule(std::shared_ptr<Config> conf, std::shared_ptr<Logger> log);
+    DatabaseModule(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log);
 
     virtual ~DatabaseModule();
 

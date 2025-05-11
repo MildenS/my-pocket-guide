@@ -1,0 +1,7 @@
+{
+    "matchers_pool_size": 10,
+    "max_connect_retries": 20,
+    "connect_retry_delay_ms": 10000,
+    "max_matches_count": 100,
+    "match_ratio_threshold": 0.75
+}
