@@ -30,8 +30,9 @@ protected:
     void returnORB(ORBPtr orb);
     ORBPool orb_pool;
 
-
-
+private:
+    std::optional<CoreResponse> getCoreResponse(const DatabaseResponse& db_resp);
+    std::optional<DatabaseRequest> getDatabaseRequest(const CoreRequest& db_resp);
 };
 
 

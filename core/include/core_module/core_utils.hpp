@@ -26,18 +26,6 @@ struct CoreRequest
     std::vector<std::vector<uint8_t>> exhibit_descriptor_images;
 };
 
-inline std::optional<CoreResponse> getResponse(const DatabaseResponse& db_resp)
-{
-    std::optional<CoreResponse> resp;
-
-    resp.value().exhibit_description = db_resp.exhibit_description;
-    resp.value().exhibit_name = db_resp.exhibit_name;
-    bool success = cv::imencode(".jpg", db_resp.exhibit_image, resp.value().exhibit_image);
-    if (!success)
-        std::cerr << "Core: invalid image of exhibit with name " << db_resp.exhibit_name << std::endl;
-    return resp;
-}
-
 struct ORBPool
 {
     std::mutex mtx;
