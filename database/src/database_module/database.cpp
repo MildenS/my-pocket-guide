@@ -29,7 +29,15 @@ namespace MPG
     {
         config = conf;
         logger = log;
-        DatabaseModule();
+        if (!config)
+            config = std::make_shared<Config>();
+        if (!logger)
+            logger = std::make_shared<Logger>();
+        cluster_ptr.reset(cass_cluster_new());
+        session_ptr.reset(cass_session_new());
+        id_generator_ptr.reset(cass_uuid_gen_new());
+        cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
+        logger->LogInfo("Database module created");
     }
 
     /**

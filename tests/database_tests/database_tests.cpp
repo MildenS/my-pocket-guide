@@ -1,4 +1,7 @@
 #include <database_module/database.hpp>
+#include <config.hpp>
+#include <logger.hpp>
+
 #include <gtest/gtest.h>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
@@ -18,21 +21,28 @@ public:
     using ::DatabaseModule::getExhibit;
     using ::DatabaseModule::findExhibitUuid;
 
+    DatabaseTestModule(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log)
+        : DatabaseModule(conf, log) {}
+
 };
 
 DatabaseRequest request;
 std::vector<cv::Mat> exhibit_descr;
+std::shared_ptr<Config> config;
+std::shared_ptr<Logger> logger;
+
+
 
 void makeTestData(const std::string& path);
 
 TEST(MPGDataBaseTest, Init) {
-    DatabaseTestModule db;
+    DatabaseTestModule db(config, logger);
     bool is_init = db.init();
     ASSERT_EQ(is_init, true);
 }
 
 TEST(MPGDataBaseTest, AddExhibit) {
-    DatabaseTestModule db;
+    DatabaseTestModule db(config, logger);
     bool is_init = db.init();
     ASSERT_EQ(is_init, true);
     bool is_add = db.addExhibit(request);
@@ -41,11 +51,11 @@ TEST(MPGDataBaseTest, AddExhibit) {
 
 
 TEST(MPGDataBaseTest, GetExhibit) {
-    DatabaseTestModule db;
+    DatabaseTestModule db(config, logger);
     bool is_init = db.init();
     ASSERT_EQ(is_init, true);
-    bool is_add = db.addExhibit(request);
-    ASSERT_EQ(is_add, true);
+    //bool is_add = db.addExhibit(request);
+    //ASSERT_EQ(is_add, true);
 
     auto response = db.getExhibit(exhibit_descr[0]);
     ASSERT_NE(response, std::nullopt);
@@ -64,6 +74,8 @@ int main(int argc, char** argv)
     //     std::abort();
     // }
     // makeTestData(std::string(argv[1]));
+    config = std::make_shared<Config>();
+    logger = std::make_shared<Logger>();
     makeTestData("../../../data/test_data/1");
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

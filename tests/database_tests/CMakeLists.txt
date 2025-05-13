@@ -9,6 +9,7 @@ target_link_libraries(database_tests
         gtest
         gtest_main
         ${MPG_DATABASE_LIBRARY}
+        utils
 )
 
 include(GoogleTest)
