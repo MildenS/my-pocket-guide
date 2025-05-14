@@ -28,6 +28,9 @@ protected:
 
     std::unique_ptr<DatabaseModule> db;
 
+    std::shared_ptr<Config> config;
+    std::shared_ptr<Logger> logger;
+
     bool initORBPool();
     ORBPtr getORB();
     void returnORB(ORBPtr orb);

@@ -450,14 +450,7 @@ namespace MPG
     void DatabaseModule::logCallback(const CassLogMessage* message, void* data)
     {
         Logger *logger_cb = static_cast<Logger *>(data);
-        // fprintf(log_file, "%u.%03u [%s] (%s:%d:%s): %s\n", (unsigned int)(message->time_ms / 1000),
-        //         (unsigned int)(message->time_ms % 1000), cass_log_level_string(message->severity),
-        //         message->file, message->line, message->function, message->message);
-        std::string log_message = "Database module: " +
-           std::to_string(message->time_ms / 1000) + "." +
-           std::to_string(message->time_ms % 1000) + " (" +
-           message->file + ":" +
-           std::to_string(message->line) + ":" +
+        std::string log_message = std::string("Database module: ") +
            message->function + "): " +
            message->message + "\n";
         switch (message->severity)

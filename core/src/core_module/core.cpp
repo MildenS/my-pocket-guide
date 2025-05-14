@@ -8,6 +8,9 @@ namespace MPG
     {
         db = std::make_unique<DatabaseModule>(conf, log);
         db->init();
+
+        config = conf;
+        logger = log;
         initORBPool();
     }
 
@@ -89,7 +92,10 @@ namespace MPG
         resp.exhibit_name = db_resp.exhibit_name;
         bool success = cv::imencode(".jpg", db_resp.exhibit_image, resp.exhibit_image);
         if (!success)
-            std::cerr << "Core: invalid image of exhibit with name " << db_resp.exhibit_name << std::endl;
+        {
+            logger->LogWarning(std::string("Core: invalid image of exhibit with name ") + db_resp.exhibit_name);
+            return std::nullopt;
+        }
         return resp;
     }
 
