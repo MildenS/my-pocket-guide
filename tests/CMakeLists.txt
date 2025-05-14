@@ -3,3 +3,4 @@ if(NOT MPG_BUILD_TESTS)
 endif()
 
 add_subdirectory(database_tests)
+add_subdirectory(core_tests)

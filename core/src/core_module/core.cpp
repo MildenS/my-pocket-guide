@@ -7,6 +7,7 @@ namespace MPG
     Core::Core(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log)
     {
         db = std::make_unique<DatabaseModule>(conf, log);
+        db->init();
         initORBPool();
     }
 
@@ -15,9 +16,10 @@ namespace MPG
     {
         std::vector<cv::KeyPoint> kps;
         cv::Mat descr;
+        cv::Mat exhibit_image_mat = cv::imdecode(exhibit_image, cv::IMREAD_GRAYSCALE);
         kps.reserve(100);
         ORBPtr orb = getORB();
-        orb->detectAndCompute(exhibit_image, cv::noArray(), kps, descr);
+        orb->detectAndCompute(exhibit_image_mat, cv::noArray(), kps, descr);
         returnORB(orb);
         std::optional<DatabaseResponse> db_resp = db->getExhibit(descr);
 
@@ -81,11 +83,11 @@ namespace MPG
 
     std::optional<CoreResponse> Core::getCoreResponse(const DatabaseResponse& db_resp)
     {
-        std::optional<CoreResponse> resp;
+        CoreResponse resp;
 
-        resp.value().exhibit_description = db_resp.exhibit_description;
-        resp.value().exhibit_name = db_resp.exhibit_name;
-        bool success = cv::imencode(".jpg", db_resp.exhibit_image, resp.value().exhibit_image);
+        resp.exhibit_description = db_resp.exhibit_description;
+        resp.exhibit_name = db_resp.exhibit_name;
+        bool success = cv::imencode(".jpg", db_resp.exhibit_image, resp.exhibit_image);
         if (!success)
             std::cerr << "Core: invalid image of exhibit with name " << db_resp.exhibit_name << std::endl;
         return resp;
@@ -104,13 +106,12 @@ namespace MPG
         for (const auto image_buffer : req.exhibit_descriptor_images)
         {
             cv::Mat image = cv::imdecode(image_buffer, cv::IMREAD_COLOR);
-            cv::Mat resized_image;
-            //cv::resize(image, resized_image, cv::Size(image.cols / 4, image.rows / 8));
-
             cv::Mat curr_descriptor;
             std::vector<cv::KeyPoint> kps;
-            orb->detectAndCompute(resized_image, cv::noArray(), kps, curr_descriptor);
+            orb->detectAndCompute(image, cv::noArray(), kps, curr_descriptor);
 
+            all_descriptor.push_back(curr_descriptor);
+            all_kps.insert(all_kps.end(), kps.begin(), kps.end());
         }
 
         std::vector<int> indices(all_kps.size());
