@@ -22,6 +22,7 @@ namespace MPG
         session_ptr.reset(cass_session_new());
         id_generator_ptr.reset(cass_uuid_gen_new());
         cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
+        cass_log_set_callback(DatabaseModule::logCallback, static_cast<void*>(logger.get()));
         logger->LogInfo("Database module created");
     }
 
@@ -37,12 +38,13 @@ namespace MPG
         session_ptr.reset(cass_session_new());
         id_generator_ptr.reset(cass_uuid_gen_new());
         cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
+        cass_log_set_callback(DatabaseModule::logCallback, static_cast<void*>(logger.get()));
         logger->LogInfo("Database module created");
     }
 
     /**
      * \brief Method for init connection to database (must be call after construction of DatabaseModule object)
-     * \todo Add config and logger
+     * 
      */
     [[nodiscard]] bool DatabaseModule::init()
     {
@@ -443,5 +445,46 @@ namespace MPG
         }
 
         origin_pool->cv.notify_one();
+    }
+
+    void DatabaseModule::logCallback(const CassLogMessage* message, void* data)
+    {
+        Logger *logger_cb = static_cast<Logger *>(data);
+        // fprintf(log_file, "%u.%03u [%s] (%s:%d:%s): %s\n", (unsigned int)(message->time_ms / 1000),
+        //         (unsigned int)(message->time_ms % 1000), cass_log_level_string(message->severity),
+        //         message->file, message->line, message->function, message->message);
+        std::string log_message = "Database module: " +
+           std::to_string(message->time_ms / 1000) + "." +
+           std::to_string(message->time_ms % 1000) + " (" +
+           message->file + ":" +
+           std::to_string(message->line) + ":" +
+           message->function + "): " +
+           message->message + "\n";
+        switch (message->severity)
+        {
+        case CASS_LOG_ERROR :
+        {
+            logger_cb->LogError(log_message);
+            break;
+        }
+        case CASS_LOG_INFO :
+        {
+            logger_cb->LogInfo(log_message);
+            break;
+        }
+        case CASS_LOG_WARN :
+        {
+            logger_cb->LogWarning(log_message);
+            break;
+        }
+        case CASS_LOG_CRITICAL :
+        {
+            logger_cb->LogCritical(log_message);
+            break;
+        }
+        default:
+            break;
+        } 
+
     }
 }

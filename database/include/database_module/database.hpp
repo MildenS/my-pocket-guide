@@ -64,6 +64,8 @@ private:
 
     bool loadDatabaseHelper(const CassRow* row);
 
+    static void logCallback(const CassLogMessage* message, void* data);
+
     void logError(CassError err, const std::string& context);
     std::optional<DatabaseResponse> getExhibitHelper(const CassRow* row);
 
