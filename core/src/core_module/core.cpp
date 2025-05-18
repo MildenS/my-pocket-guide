@@ -90,21 +90,22 @@ namespace MPG
 
         resp.exhibit_description = db_resp.exhibit_description;
         resp.exhibit_name = db_resp.exhibit_name;
-        bool success = cv::imencode(".jpg", db_resp.exhibit_image, resp.exhibit_image);
-        if (!success)
-        {
-            logger->LogWarning(std::string("Core: invalid image of exhibit with name ") + db_resp.exhibit_name);
-            return std::nullopt;
-        }
+        resp.exhibit_image = std::move(db_resp.exhibit_image);
+        //bool success = cv::imencode(".jpg", db_resp.exhibit_image, resp.exhibit_image);
+        // if (!success)
+        // {
+        //     logger->LogWarning(std::string("Core: invalid image of exhibit with name ") + db_resp.exhibit_name);
+        //     return std::nullopt;
+        // }
         return resp;
     }
 
     std::optional<DatabaseRequest> Core::getDatabaseRequest(const CoreRequest &req)
     {
         DatabaseRequest db_req;
-        db_req.exhibit_description = req.exhibit_description;
-        db_req.exhibit_title = req.exhibit_title;
-        db_req.exhibit_image = cv::imdecode(req.exhibit_main_image, cv::IMREAD_COLOR);
+        db_req.exhibit_description = std::move(req.exhibit_description);
+        db_req.exhibit_title = std::move(req.exhibit_title);
+        db_req.exhibit_image = std::move(req.exhibit_main_image);
         cv::Ptr<cv::ORB> orb = getORB();
         cv::Mat all_descriptor;
         std::vector<cv::KeyPoint> all_kps;

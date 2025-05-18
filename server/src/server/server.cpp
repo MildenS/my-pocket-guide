@@ -55,6 +55,9 @@ void Server::addExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
             logger_ptr->LogWarning("Server: invalid add exhibit request param with name " + key);
         }
     }
+
+    std::cout << "Image vector size: " << (double)exhibit_main_image.size() / (1024. * 1024.) << std::endl;
+
     CoreRequest core_request;
     core_request.exhibit_description = std::move(exhibit_description);
     core_request.exhibit_descriptor_images = std::move(exhibit_train_images);
@@ -102,7 +105,7 @@ void Server::getExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
         data_json["exhibit_description"] = exhibit_info.value().exhibit_description;
         data_json["exhibit_image"] = wfrest::Base64::encode(exhibit_info.value().exhibit_image.data(), 
                                      exhibit_info.value().exhibit_image.size());
-        resp->Json(data_json);
+        resp->Json(data_json.dump());
     }
 }
 

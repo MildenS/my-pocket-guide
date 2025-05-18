@@ -87,7 +87,7 @@ namespace MPG
     {
         std::string exhibit_name;
         std::string exhibit_description;
-        cv::Mat exhibit_image;
+        std::vector<uint8_t> exhibit_image;
         size_t percentage_of_confidance;
     };
 
@@ -95,7 +95,7 @@ namespace MPG
     {
         std::string exhibit_title;
         std::string exhibit_description;
-        cv::Mat exhibit_image;
+        std::vector<uint8_t> exhibit_image;
         cv::Mat exhibit_descriptor;
     };
 

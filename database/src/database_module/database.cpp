@@ -220,8 +220,6 @@ namespace MPG
          * * id CassUuid
          * * descriptor blob
          * * image blob
-         * * height int
-         * * width int
          * * title text
          * * desciption text
          */
@@ -234,7 +232,7 @@ namespace MPG
 
 
         StatementPtr get_exhibit_statement_ptr;
-        get_exhibit_statement_ptr.reset(cass_statement_new("select image, height, width, title, description from mpg_keyspace.exhibits where id=?", 1));
+        get_exhibit_statement_ptr.reset(cass_statement_new("select image, title, description from mpg_keyspace.exhibits where id=?", 1));
         cass_statement_bind_uuid(get_exhibit_statement_ptr.get(), 0, exhibit_id.value());
         FuturePtr query_future_ptr;
         query_future_ptr.reset(cass_session_execute(session_ptr.get(), get_exhibit_statement_ptr.get()));
@@ -262,26 +260,13 @@ namespace MPG
     {
         const cass_byte_t *image_data = nullptr;
         size_t image_size_bytes = 0;
-        int image_widht, image_height;
         if (CassError err = cass_value_get_bytes(cass_row_get_column_by_name(row, "image"), &image_data, &image_size_bytes); err != CASS_OK)
         {
             logError(err, "Failed to get image from database row");
             return std::nullopt;
         };
-        if (CassError err = cass_value_get_int32(cass_row_get_column_by_name(row, "height"), &image_height); err != CASS_OK)
-        {
-            logError(err, "Failed to get image height from database row");
-            return std::nullopt;
-        }
-        if (CassError err = cass_value_get_int32(cass_row_get_column_by_name(row, "width"), &image_widht); err != CASS_OK)
-        {
-            logError(err, "Failed to get image width from database row");
-            return std::nullopt;
-        }
         
         std::vector<uint8_t> image_buffer(image_data, image_data + image_size_bytes);
-        cv::Mat image_temp(image_height, image_widht, CV_8UC3, image_buffer.data());
-        cv::Mat exhibit_image = image_temp.clone();
 
         const char *title_data;
         size_t title_length;
@@ -306,7 +291,7 @@ namespace MPG
         
         DatabaseResponse response;
         response.exhibit_description = exhibit_description;
-        response.exhibit_image = exhibit_image;
+        response.exhibit_image = image_buffer;
         response.exhibit_name = exhibit_title;
         return response;
     }
@@ -323,9 +308,24 @@ namespace MPG
 
     [[nodiscard]] bool DatabaseModule::addExhibit(const DatabaseRequest& exhibit_data)
     {
+        size_t title_size = exhibit_data.exhibit_title.size();
+        size_t desc_size = exhibit_data.exhibit_description.size();
+
+        size_t image_size = exhibit_data.exhibit_image.size();
+        size_t descriptor_size = exhibit_data.exhibit_descriptor.total() * exhibit_data.exhibit_descriptor.elemSize();
+
+        size_t total_bytes = title_size + desc_size + image_size + descriptor_size;
+
+        double total_mb = static_cast<double>(total_bytes) / (1024.0 * 1024.0);
+        logger->LogInfo("Add exhibit request size: " + std::to_string(total_mb));
+        std::cout << sizeof(exhibit_data) << std::endl;
+
+        
+
+
         StatementPtr add_exhibit_statement_ptr;
         add_exhibit_statement_ptr.reset(
-            cass_statement_new("insert into mpg_keyspace.exhibits (id, image, height, width, title, description, descriptor) values (?, ?, ?, ?, ?, ?, ?)", 7));
+            cass_statement_new("insert into mpg_keyspace.exhibits (id, image, title, description, descriptor) values (?, ?, ?, ?, ?)", 5));
         CassUuid exhibit_id;
         cass_uuid_gen_random(id_generator_ptr.get(), &exhibit_id);
         if (auto err = cass_statement_bind_uuid(add_exhibit_statement_ptr.get(), 0, exhibit_id); err != CASS_OK)
@@ -334,35 +334,24 @@ namespace MPG
             return false;
         }
         if (auto err = cass_statement_bind_bytes(add_exhibit_statement_ptr.get(), 1, 
-                                  reinterpret_cast<const cass_byte_t*>(exhibit_data.exhibit_image.data),
-                                  exhibit_data.exhibit_image.total() * exhibit_data.exhibit_image.elemSize()); err != CASS_OK)
+                                  reinterpret_cast<const cass_byte_t*>(exhibit_data.exhibit_image.data()),
+                                  exhibit_data.exhibit_image.size()); err != CASS_OK)
         {
             logError(err, "Bind image data to add new exhibit query");
             return false;
         }
 
-        cv::Size exhibit_image_size = exhibit_data.exhibit_image.size();
-        if (auto err = cass_statement_bind_int32(add_exhibit_statement_ptr.get(), 2, exhibit_image_size.height); err != CASS_OK)
-        {
-            logError(err, "Bind image height to add new exhibit query");
-            return false;
-        }
-        if (auto err = cass_statement_bind_int32(add_exhibit_statement_ptr.get(), 3, exhibit_image_size.width); err != CASS_OK)
-        {
-            logError(err, "Bind image width to add new exhibit query");
-            return false;
-        }
-        if (auto err = cass_statement_bind_string(add_exhibit_statement_ptr.get(), 4, exhibit_data.exhibit_title.c_str()); err != CASS_OK)
+        if (auto err = cass_statement_bind_string(add_exhibit_statement_ptr.get(), 2, exhibit_data.exhibit_title.c_str()); err != CASS_OK)
         {
             logError(err, "Bind image title to add new exhibit query");
             return false;
         }
-        if (auto err = cass_statement_bind_string(add_exhibit_statement_ptr.get(), 5, exhibit_data.exhibit_description.c_str()); err != CASS_OK)
+        if (auto err = cass_statement_bind_string(add_exhibit_statement_ptr.get(), 3, exhibit_data.exhibit_description.c_str()); err != CASS_OK)
         {
             logError(err, "Bind image description to add new exhibit query");
             return false;
         }
-        if (auto err = cass_statement_bind_bytes(add_exhibit_statement_ptr.get(), 6, 
+        if (auto err = cass_statement_bind_bytes(add_exhibit_statement_ptr.get(), 4, 
                                   reinterpret_cast<const cass_byte_t*>(exhibit_data.exhibit_descriptor.data),
                                   exhibit_data.exhibit_descriptor.total() * exhibit_data.exhibit_descriptor.elemSize()); err != CASS_OK)
         {

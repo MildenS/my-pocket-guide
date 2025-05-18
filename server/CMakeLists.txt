@@ -28,4 +28,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${MPG_CORE_LIBRARY}
     utils
     wfrest
+    #cassandra_static
 )

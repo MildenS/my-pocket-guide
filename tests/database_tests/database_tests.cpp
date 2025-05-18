@@ -60,7 +60,8 @@ TEST(MPGDataBaseTest, GetExhibit) {
     auto response = db.getExhibit(exhibit_descr[0]);
     ASSERT_NE(response, std::nullopt);
     ASSERT_EQ(response.value().exhibit_name, "test");
-    cv::imshow("deserialized_image", response.value().exhibit_image);
+    cv::Mat deser_image = cv::imdecode(response.value().exhibit_image, cv::IMREAD_COLOR);
+    cv::imshow("deserialized_image", deser_image);
     cv::waitKey(0);
 }
 
@@ -120,7 +121,8 @@ void makeTestData(const std::string& path)
         ++counter;
     }
 
-    request.exhibit_image = exhibit_images[0];
+    //request.exhibit_image = exhibit_images[0];
+    cv::imencode(".jpg", exhibit_images[0], request.exhibit_image);
     request.exhibit_title = "test";
     request.exhibit_description = "test exhibit";
 
