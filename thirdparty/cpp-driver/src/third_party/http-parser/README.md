@@ -34,7 +34,7 @@ Usage
 -----
 
 One `http_parser` object is used per TCP connection. Initialize the struct
-using `http_parser_init()` and set the callbacks. That might look something
+using `cass_http_parser_init()` and set the callbacks. That might look something
 like this for a request parser:
 ```c
 http_parser_settings settings;
@@ -43,7 +43,7 @@ settings.on_header_field = my_header_field_callback;
 /* ... */
 
 http_parser *parser = malloc(sizeof(http_parser));
-http_parser_init(parser, HTTP_REQUEST);
+cass_http_parser_init(parser, HTTP_REQUEST);
 parser->data = my_socket;
 ```
 
@@ -179,7 +179,7 @@ void http_parser_thread(socket_t sock) {
 
  /* instantiate a thread-local parser */
  http_parser *parser = malloc(sizeof(http_parser));
- http_parser_init(parser, HTTP_REQUEST); /* initialise parser */
+ cass_http_parser_init(parser, HTTP_REQUEST); /* initialise parser */
  /* this custom data reference is accessible through the reference to the
  parser supplied to callback functions */
  parser->data = my_data;

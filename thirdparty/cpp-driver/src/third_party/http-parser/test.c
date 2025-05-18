@@ -2473,7 +2473,7 @@ void
 parser_init (enum http_parser_type type)
 {
   num_messages = 0;
-  http_parser_init(&parser, type);
+  cass_http_parser_init(&parser, type);
   memset(&messages, 0, sizeof messages);
 }
 
@@ -2771,9 +2771,9 @@ test_preserve_data (void)
   char my_data[] = "application-specific data";
   http_parser parser;
   parser.data = my_data;
-  http_parser_init(&parser, HTTP_REQUEST);
+  cass_http_parser_init(&parser, HTTP_REQUEST);
   if (parser.data != my_data) {
-    printf("\n*** parser.data not preserved accross http_parser_init ***\n\n");
+    printf("\n*** parser.data not preserved accross cass_http_parser_init ***\n\n");
     abort();
   }
 }
@@ -3559,7 +3559,7 @@ void
 test_invalid_header_content (int req, const char* str)
 {
   http_parser parser;
-  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  cass_http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
   size_t parsed;
   const char *buf;
   buf = req ?
@@ -3593,7 +3593,7 @@ void
 test_invalid_header_field (int req, const char* str)
 {
   http_parser parser;
-  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  cass_http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
   size_t parsed;
   const char *buf;
   buf = req ?
@@ -3627,7 +3627,7 @@ void
 test_double_content_length_error (int req)
 {
   http_parser parser;
-  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  cass_http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
   size_t parsed;
   const char *buf;
   buf = req ?
@@ -3654,7 +3654,7 @@ void
 test_chunked_content_length_error (int req)
 {
   http_parser parser;
-  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  cass_http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
   size_t parsed;
   const char *buf;
   buf = req ?
@@ -3681,7 +3681,7 @@ void
 test_header_cr_no_lf_error (int req)
 {
   http_parser parser;
-  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  cass_http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
   size_t parsed;
   const char *buf;
   buf = req ?
@@ -3732,7 +3732,7 @@ void
 test_header_overflow_error (int req)
 {
   http_parser parser;
-  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  cass_http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
   size_t parsed;
   const char *buf;
   buf = req ? "GET / HTTP/1.1\r\n" : "HTTP/1.0 200 OK\r\n";
@@ -3761,7 +3761,7 @@ void
 test_header_nread_value ()
 {
   http_parser parser;
-  http_parser_init(&parser, HTTP_REQUEST);
+  cass_http_parser_init(&parser, HTTP_REQUEST);
   size_t parsed;
   const char *buf;
   buf = "GET / HTTP/1.1\r\nheader: value\nhdr: value\r\n";
@@ -3776,7 +3776,7 @@ static void
 test_content_length_overflow (const char *buf, size_t buflen, int expect_ok)
 {
   http_parser parser;
-  http_parser_init(&parser, HTTP_RESPONSE);
+  cass_http_parser_init(&parser, HTTP_RESPONSE);
   http_parser_execute(&parser, &settings_null, buf, buflen);
 
   if (expect_ok)
@@ -3823,7 +3823,7 @@ void
 test_no_overflow_long_body (int req, size_t length)
 {
   http_parser parser;
-  http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
+  cass_http_parser_init(&parser, req ? HTTP_REQUEST : HTTP_RESPONSE);
   size_t parsed;
   size_t i;
   char buf1[3000];

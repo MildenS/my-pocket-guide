@@ -71,7 +71,7 @@ Server::ClientConnection::ClientConnection(internal::ServerConnection* server_co
     , response_status_code_(server->response_status_code())
     , enable_valid_response_(server->enable_valid_response())
     , close_connnection_after_request_(server->close_connnection_after_request()) {
-  http_parser_init(&parser_, HTTP_REQUEST);
+  cass_http_parser_init(&parser_, HTTP_REQUEST);
   http_parser_settings_init(&parser_settings_);
 
   parser_.data = this;

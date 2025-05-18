@@ -2145,7 +2145,7 @@ http_status_str (enum http_status s)
 }
 
 void
-http_parser_init (http_parser *parser, enum http_parser_type t)
+cass_http_parser_init (http_parser *parser, enum http_parser_type t)
 {
   void *data = parser->data; /* preserve application data */
   memset(parser, 0, sizeof(*parser));

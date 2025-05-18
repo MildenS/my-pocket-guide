@@ -80,7 +80,7 @@ int bench(int iter_count, int silent) {
   fprintf(stderr, "req_len=%d\n", (int) data_len);
   for (i = 0; i < iter_count; i++) {
     size_t parsed;
-    http_parser_init(&parser, HTTP_REQUEST);
+    cass_http_parser_init(&parser, HTTP_REQUEST);
 
     parsed = http_parser_execute(&parser, &settings, data, data_len);
     assert(parsed == data_len);

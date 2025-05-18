@@ -69,7 +69,7 @@ HttpClient::HttpClient(const Address& address, const String& path, const Callbac
           new SocketConnector(address, bind_callback(&HttpClient::on_socket_connect, this)))
     , request_timeout_ms_(CASS_DEFAULT_CONNECT_TIMEOUT_MS)
     , status_code_(0) {
-  http_parser_init(&parser_, HTTP_RESPONSE);
+  cass_http_parser_init(&parser_, HTTP_RESPONSE);
   http_parser_settings_init(&parser_settings_);
 
   parser_.data = this;

@@ -164,6 +164,8 @@ if(CASS_BUILD_SHARED)
   endif()
 endif()
 
+message(STATUS "CASS_BUILD_STATIC: ${CASS_BUILD_STATIC}")
+
 if(CASS_BUILD_STATIC)
   add_library(cassandra_static STATIC
     ${SOURCES}
