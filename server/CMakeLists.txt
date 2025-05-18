@@ -19,6 +19,14 @@ find_package(wfrest REQUIRED)
 target_include_directories(${MPG_SERVER_LIBRARY} PUBLIC ${SERVER_INCLUDE_DIRS})
 
 target_link_libraries(${MPG_SERVER_LIBRARY} PRIVATE ${MPG_CORE_LIBRARY})
-target_link_libraries(${MPG_SERVER_LIBRARY} PRIVATE utils wfrest)
+target_link_libraries(${MPG_SERVER_LIBRARY} PUBLIC utils wfrest)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${MPG_SERVER_LIBRARY})
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${MPG_SERVER_LIBRARY}
+    ${MPG_CORE_LIBRARY}
+    utils
+    wfrest
+    cassandra_static
+)

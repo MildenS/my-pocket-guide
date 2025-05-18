@@ -10,14 +10,14 @@ class Server
 
 public:
 
-    Server();
+    Server(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log);
 
     int start();
 
 protected:
 
-    void addExhibit(wfrest::HttpReq* req, wfrest::HttpResp* resp);
-    void getExhibit(wfrest::HttpReq* req, wfrest::HttpResp* resp);
+    void addExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp);
+    void getExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp);
 
 
 private:
