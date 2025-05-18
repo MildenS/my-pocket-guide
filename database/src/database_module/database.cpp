@@ -161,6 +161,7 @@ namespace MPG
         for (int i = 0; i < descriptor.rows; ++i)
             local_descriptor_to_id_map.push_back(id);
 
+        std::cout << "Load database local_descriptor_to_id_map.size " << local_descriptor_to_id_map.size() << std::endl;
         return true;
     }
 
@@ -363,7 +364,7 @@ namespace MPG
         }
         if (auto err = cass_statement_bind_bytes(add_exhibit_statement_ptr.get(), 6, 
                                   reinterpret_cast<const cass_byte_t*>(exhibit_data.exhibit_descriptor.data),
-                                  exhibit_data.exhibit_image.total() * exhibit_data.exhibit_descriptor.elemSize()); err != CASS_OK)
+                                  exhibit_data.exhibit_descriptor.total() * exhibit_data.exhibit_descriptor.elemSize()); err != CASS_OK)
         {
             logError(err, "Bind image descriptor to add new exhibit query");
             return false;
@@ -390,6 +391,7 @@ namespace MPG
         {
             local_descriptor_to_id_map.push_back(exhibit_id);
         }
+        std::cout << "Add descriptor database local_descriptor_to_id_map.size " << local_descriptor_to_id_map.size() << std::endl;
 
         initMatchersPool();
 
