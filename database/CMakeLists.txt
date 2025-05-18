@@ -18,7 +18,7 @@ message(STATUS "DATABASE_INCLUDE_DIRS: ${DATABASE_INCLUDE_DIRS}")
 target_include_directories(${MPG_DATABASE_LIBRARY} PUBLIC ${DATABASE_INCLUDE_DIRS})
 
 target_link_libraries(${MPG_DATABASE_LIBRARY} PUBLIC ${OpenCV_LIBS})
-target_link_libraries(${MPG_DATABASE_LIBRARY} PRIVATE cassandra_static)
+target_link_libraries(${MPG_DATABASE_LIBRARY} PUBLIC cassandra_static)
 target_link_libraries(${MPG_DATABASE_LIBRARY} PUBLIC utils)
 
 #add_executable(${PROJECT_NAME} src/main.cpp)
