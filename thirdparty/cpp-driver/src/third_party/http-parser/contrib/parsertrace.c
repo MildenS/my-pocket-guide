@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
   settings.on_message_complete = on_message_complete;
 
   http_parser parser;
-  http_parser_init(&parser, file_type);
+  cass_http_parser_init(&parser, file_type);
   size_t nparsed = http_parser_execute(&parser, &settings, data, file_length);
   free(data);
 
