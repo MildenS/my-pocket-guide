@@ -161,7 +161,7 @@ namespace MPG
         for (int i = 0; i < descriptor.rows; ++i)
             local_descriptor_to_id_map.push_back(id);
 
-        std::cout << "Load database local_descriptor_to_id_map.size " << local_descriptor_to_id_map.size() << std::endl;
+        logger->LogInfo(std::string("Load database local_descriptor_to_id_map.size ") + std::to_string(local_descriptor_to_id_map.size()));
         return true;
     }
 
@@ -249,6 +249,12 @@ namespace MPG
         QueryResultPtr result(cass_future_get_result(query_future_ptr.get()));
 
         const CassRow* row = cass_result_first_row(result.get());  
+        if (row == nullptr)
+        {
+            logger->LogError("DatabaseModule: nullptr cass row");
+            return std::nullopt;
+        }
+            
 
         std::optional resp = getExhibitHelper(row);
         if (resp.has_value())
@@ -385,7 +391,79 @@ namespace MPG
         {
             local_descriptor_to_id_map.push_back(exhibit_id);
         }
-        std::cout << "Add descriptor database local_descriptor_to_id_map.size " << local_descriptor_to_id_map.size() << std::endl;
+        ul.unlock();
+
+        logger->LogInfo(std::string
+            ("Add exhibit database local_descriptor_to_id_map.size ") + std::to_string(local_descriptor_to_id_map.size()));
+
+        initMatchersPool();
+
+        return true;
+    }
+
+    bool DatabaseModule::deleteExhibit(const std::string& exhibit_id)
+    {
+        CassUuid id;
+        cass_uuid_from_string(exhibit_id.c_str(), &id);
+        CassUuidEqual id_equal;
+        auto id_equal_pred = [&id, &id_equal](const CassUuid& other_id)
+        {
+            return id_equal(id, other_id);
+        };
+
+        if (std::find_if(local_descriptor_to_id_map.begin(), local_descriptor_to_id_map.end(), id_equal_pred) == 
+                         local_descriptor_to_id_map.end())
+        {
+            logger->LogError("DatabaseModule: cannot delete exhibit with id " + exhibit_id + ", not found");
+            return false;
+        }
+
+        StatementPtr delete_exhibit_statement_ptr;
+        delete_exhibit_statement_ptr.reset(
+            cass_statement_new("delete from mpg_keyspace.exhibits where id=?", 1));
+
+        if (auto err = cass_statement_bind_uuid(delete_exhibit_statement_ptr.get(), 0, id); err != CASS_OK)
+        {
+            logError(err, "Bind id to delete exhibit query");
+            return false;
+        }
+
+        FuturePtr query_future_ptr;
+        query_future_ptr.reset(cass_session_execute(session_ptr.get(), delete_exhibit_statement_ptr.get()));
+
+        CassError rc = cass_future_error_code(query_future_ptr.get());
+        if (rc != CASS_OK)
+        {
+            const char *message;
+            size_t message_length;
+            cass_future_error_message(query_future_ptr.get(), &message, &message_length);
+
+            logger->LogError("DatabaseModule: delete query error (" + std::string(cass_error_desc(rc)) + "): " + 
+                        std::string(message, message_length));
+            return false;
+        }
+
+
+
+        cv::Mat updated_descriptors;
+        std::vector<CassUuid> updated_id_map;
+        std::unique_lock<std::mutex> ul(local_database_mtx);
+        for (size_t i = 0; i < local_descriptor_to_id_map.size(); ++i)
+        {
+            if (!id_equal(local_descriptor_to_id_map[i], id))
+            {
+                updated_descriptors.push_back(local_database_descriptor.row(i));
+                updated_id_map.push_back(local_descriptor_to_id_map[i]);
+            }
+        }
+
+        local_database_descriptor = std::move(updated_descriptors);
+        local_descriptor_to_id_map = std::move(updated_id_map);
+        ul.unlock();
+        logger->LogInfo(std::string
+            ("Delete exhibit database local_descriptor_to_id_map.size ") + std::to_string(local_descriptor_to_id_map.size()));
+        logger->LogInfo(std::string
+            ("Delete exhibit database local_descriptor.rows ") + std::to_string(local_database_descriptor.rows));
 
         initMatchersPool();
 

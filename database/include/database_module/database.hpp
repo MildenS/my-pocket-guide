@@ -39,6 +39,7 @@ public:
 
     virtual std::optional<DatabaseResponse> getExhibit(const cv::Mat& description);
     virtual bool addExhibit(const DatabaseRequest& exhibit_data);
+    virtual bool deleteExhibit(const std::string& exhibit_idid);
 
 
 protected:
