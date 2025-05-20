@@ -21,6 +21,7 @@ public:
     Core(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log);
     virtual std::optional<CoreResponse> getExhibit(std::vector<uint8_t>&& exhibit_image);
     virtual bool addExhibit(const CoreRequest& req);
+    virtual bool deleteExhibit(const std::string& exhibit_id);
     virtual ~Core(){};
 
 

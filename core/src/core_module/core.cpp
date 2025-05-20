@@ -140,4 +140,9 @@ namespace MPG
 
         return db_req;
     }
+
+    bool Core::deleteExhibit(const std::string& exhibit_id)
+    {
+        return db->deleteExhibit(exhibit_id);
+    }
 }

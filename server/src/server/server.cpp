@@ -14,6 +14,7 @@ Server::Server(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger
 
     server_ptr->POST("/add-exhibit", bind(&Server::addExhibit, this));
     server_ptr->POST("/get-exhibit", bind(&Server::getExhibit, this));
+    server_ptr->DELETE("/delete-exhibit", bind(&Server::deleteExhibit, this));
 
     logger_ptr->LogInfo("Server: server created!");
 }
@@ -109,5 +110,23 @@ void Server::getExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
         resp->Json(data_json.dump());
     }
 }
+
+void Server::deleteExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
+{
+    logger_ptr->LogInfo("Server: Start delete exhibit");
+    auto& exhibit_id = req->query("exhibit-id");
+    if (exhibit_id == "")
+    {
+        resp->set_status(HttpStatusBadRequest);
+        resp->String("Empty exhibit-id");
+        return;
+    }
+    bool is_del = core_ptr->deleteExhibit(exhibit_id);
+    if (!is_del)
+    {
+        resp->set_status(HttpStatusBadRequest);
+    }
+}
+
 
 }
