@@ -49,7 +49,6 @@ TEST(MPGDataBaseTest, AddExhibit) {
     ASSERT_EQ(is_add, true);
 }
 
-
 TEST(MPGDataBaseTest, GetExhibit) {
     DatabaseTestModule db(config, logger);
     bool is_init = db.init();

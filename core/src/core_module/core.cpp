@@ -15,7 +15,7 @@ namespace MPG
     }
 
 
-    std::optional<CoreResponse> Core::getExhibit(const std::vector<uint8_t>& exhibit_image)
+    std::optional<CoreResponse> Core::getExhibit(std::vector<uint8_t>&& exhibit_image)
     {
         std::vector<cv::KeyPoint> kps;
         cv::Mat descr;
@@ -88,8 +88,9 @@ namespace MPG
     {
         CoreResponse resp;
 
-        resp.exhibit_description = db_resp.exhibit_description;
-        resp.exhibit_name = db_resp.exhibit_name;
+        resp.exhibit_id = std::move(db_resp.exhibit_id);
+        resp.exhibit_description = std::move(db_resp.exhibit_description);
+        resp.exhibit_name = std::move(db_resp.exhibit_name);
         resp.exhibit_image = std::move(db_resp.exhibit_image);
         //bool success = cv::imencode(".jpg", db_resp.exhibit_image, resp.exhibit_image);
         // if (!success)
@@ -135,7 +136,7 @@ namespace MPG
             final_descriptors.push_back(all_descriptor.row(indices[i]));
         }
 
-        db_req.exhibit_descriptor = final_descriptors;
+        db_req.exhibit_descriptor = std::move(final_descriptors);
 
         return db_req;
     }

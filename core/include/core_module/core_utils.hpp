@@ -11,6 +11,7 @@ namespace MPG
 
 struct CoreResponse
 {
+    std::string exhibit_id;
     std::string exhibit_name;
     std::string exhibit_description;
     std::vector<uint8_t> exhibit_image;

@@ -19,7 +19,7 @@ public:
     using ORBPtr = cv::Ptr<cv::ORB>;
 
     Core(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log);
-    virtual std::optional<CoreResponse> getExhibit(const std::vector<uint8_t>& exhibit_image);
+    virtual std::optional<CoreResponse> getExhibit(std::vector<uint8_t>&& exhibit_image);
     virtual bool addExhibit(const CoreRequest& req);
     virtual ~Core(){};
 

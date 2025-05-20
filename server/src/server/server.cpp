@@ -93,7 +93,7 @@ void Server::getExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
             logger_ptr->LogWarning("Server: invalid add exhibit request param with name " + key);
         }
     }
-    auto exhibit_info = core_ptr->getExhibit(exhibit_image);
+    auto exhibit_info = core_ptr->getExhibit(std::move(exhibit_image));
     if (!exhibit_info.has_value())
     {
         resp->set_status(HttpStatusBadRequest);
@@ -101,13 +101,13 @@ void Server::getExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
     else
     {
         nlohmann::json data_json;
-        data_json["exhibit_title"] = exhibit_info.value().exhibit_name;
-        data_json["exhibit_description"] = exhibit_info.value().exhibit_description;
-        data_json["exhibit_image"] = wfrest::Base64::encode(exhibit_info.value().exhibit_image.data(), 
-                                     exhibit_info.value().exhibit_image.size());
+        data_json["exhibit_id"] = std::move(exhibit_info.value().exhibit_id);
+        data_json["exhibit_title"] = std::move(exhibit_info.value().exhibit_name);
+        data_json["exhibit_description"] = std::move(exhibit_info.value().exhibit_description);
+        data_json["exhibit_image"] = std::move(wfrest::Base64::encode(exhibit_info.value().exhibit_image.data(), 
+                                     exhibit_info.value().exhibit_image.size()));
         resp->Json(data_json.dump());
     }
 }
-
 
 }

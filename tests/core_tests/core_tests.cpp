@@ -50,7 +50,7 @@ TEST(MPGDataBaseTest, GetExhibit) {
     //bool is_add = core.addExhibit(request);
     //ASSERT_EQ(is_add, true);
 
-    auto response = core.getExhibit(exhibit_descr[0]);
+    auto response = core.getExhibit(std::move(exhibit_descr[0]));
     ASSERT_NE(response, std::nullopt);
     ASSERT_EQ(response.value().exhibit_name, "test");
     std::cout << exhibit_descr[0].size() << " " << response.value().exhibit_image.size() << std::endl;

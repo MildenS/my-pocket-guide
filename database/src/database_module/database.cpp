@@ -169,7 +169,7 @@ namespace MPG
     {
         PooledMatcher matcher = getMatcher();
         std::vector< std::vector<cv::DMatch> > knn_matches;
-        knn_matches.reserve(config->max_matches_count);
+        //knn_matches.reserve(local_descriptor_to_id_map.size());
         const int k = 2;
 
         matcher.matcher->knnMatch(exhibit_descriptor, knn_matches, k);
@@ -180,19 +180,16 @@ namespace MPG
             return std::nullopt;
         }
         
-        const float ratio_threshold = config->match_ratio_threshold;
+        //const float ratio_threshold = config->match_ratio_threshold;
         std::unordered_map<CassUuid, uint, std::hash<CassUuid>, CassUuidEqual> good_matches;
 
         for (const auto& match: knn_matches)
         {
-            if (match[0].distance < ratio_threshold * match[1].distance)
-            {
-                CassUuid best_match_id = local_descriptor_to_id_map[match[0].trainIdx];
-                if (good_matches.find(best_match_id) == good_matches.end())
-                    good_matches[best_match_id] = 1;
-                else
-                    good_matches[best_match_id]++; 
-            }
+            CassUuid best_match_id = local_descriptor_to_id_map[match[0].trainIdx];
+            if (good_matches.find(best_match_id) == good_matches.end())
+                good_matches[best_match_id] = 1;
+            else
+                good_matches[best_match_id]++;
         }
 
         if (good_matches.size() == 0)
@@ -253,7 +250,15 @@ namespace MPG
 
         const CassRow* row = cass_result_first_row(result.get());  
 
-        return getExhibitHelper(row);
+        std::optional resp = getExhibitHelper(row);
+        if (resp.has_value())
+        {
+            char id_str[37];
+            cass_uuid_string(exhibit_id.value(), id_str);
+            resp.value().exhibit_id = std::string(id_str);
+        }
+
+        return resp;
     }
 
     [[nodiscard]] std::optional<DatabaseResponse> DatabaseModule::getExhibitHelper(const CassRow* row)
@@ -281,7 +286,7 @@ namespace MPG
 
         const char *decription_data;
         size_t description_length;
-        err = cass_value_get_string(cass_row_get_column_by_name(row, "title"), &decription_data, &description_length);
+        err = cass_value_get_string(cass_row_get_column_by_name(row, "description"), &decription_data, &description_length);
         if (err != CASS_OK)
         {
             logError(err, "Failed to get description from database row");
@@ -290,9 +295,9 @@ namespace MPG
         std::string exhibit_description(decription_data, description_length);
         
         DatabaseResponse response;
-        response.exhibit_description = exhibit_description;
-        response.exhibit_image = image_buffer;
-        response.exhibit_name = exhibit_title;
+        response.exhibit_description = std::move(exhibit_description);
+        response.exhibit_image = std::move(image_buffer);
+        response.exhibit_name = std::move(exhibit_title);
         return response;
     }
 
