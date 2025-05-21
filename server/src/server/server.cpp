@@ -1,5 +1,4 @@
 #include <server/server.hpp>
-#include "wfrest/base64.h"
 
 namespace MPG
 {
@@ -15,6 +14,7 @@ Server::Server(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger
     server_ptr->POST("/add-exhibit", bind(&Server::addExhibit, this));
     server_ptr->POST("/get-exhibit", bind(&Server::getExhibit, this));
     server_ptr->DELETE("/delete-exhibit", bind(&Server::deleteExhibit, this));
+    server_ptr->GET("/get-database-chunk", bind(&Server::getDatabaseChunk, this));
 
     logger_ptr->LogInfo("Server: server created!");
 }
@@ -101,7 +101,7 @@ void Server::getExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
     }
     else
     {
-        nlohmann::json data_json;
+        nlohmann::json data_json;// = std::move(exhibit_info.value());
         data_json["exhibit_id"] = std::move(exhibit_info.value().exhibit_id);
         data_json["exhibit_title"] = std::move(exhibit_info.value().exhibit_name);
         data_json["exhibit_description"] = std::move(exhibit_info.value().exhibit_description);
@@ -128,5 +128,23 @@ void Server::deleteExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
     }
 }
 
+
+void Server::getDatabaseChunk(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
+{
+    logger_ptr->LogInfo("Server: Start get database chunk");
+    auto& next_chunk_token = req->query("next-chunk-token");
+    auto chunk = core_ptr->getDatabaseChunk(next_chunk_token);
+    if (!chunk.has_value())
+    {
+        resp->set_status(HttpStatusBadRequest);
+        resp->String("No chunk or empty chunk");
+        return;
+    }
+    nlohmann::json data_json;
+    data_json["next_chunk_token"] = std::move(chunk.value().next_chunk_token);
+    data_json["is_last_chunk"] = std::move(chunk.value().is_last_chunk);
+    data_json["exhibits"] = std::move(chunk.value().exhibits);
+    resp->Json(data_json.dump());
+}
 
 }

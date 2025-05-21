@@ -100,6 +100,13 @@ namespace MPG
         cv::Mat exhibit_descriptor;
     };
 
+    struct DatabaseChunk
+    {
+        std::vector<DatabaseResponse> exhibits;
+        std::string next_chunk_token;
+        bool is_last_chunk;
+    };
+
     struct MatcherPool
     {
         std::mutex mtx;

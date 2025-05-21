@@ -470,6 +470,123 @@ namespace MPG
         return true;
     }
 
+    std::optional<DatabaseChunk> DatabaseModule::getDatabaseChunk(const std::string& next_chunk_token)
+    {
+        std::string query = "select id, image, title, description from mpg_keyspace.exhibits";
+        StatementPtr  get_chunk_statement(cass_statement_new(query.c_str(), 0));
+        const int chunk_size = 10;
+        cass_statement_set_paging_size(get_chunk_statement.get(), chunk_size);
+
+        if (!next_chunk_token.empty())
+        {
+            CassError rc = cass_statement_set_paging_state_token(
+                get_chunk_statement.get(), next_chunk_token.data(), next_chunk_token.size());
+            if (rc != CASS_OK)
+            {
+                logError(rc, "Failed to set paging token in get chunk method");
+                return std::nullopt;
+            }
+        }
+
+        FuturePtr query_future_ptr;
+        query_future_ptr.reset(cass_session_execute(session_ptr.get(), get_chunk_statement.get()));
+
+        CassError rc = cass_future_error_code(query_future_ptr.get());
+        if (rc != CASS_OK)
+        {
+            const char *message;
+            size_t message_length;
+            cass_future_error_message(query_future_ptr.get(), &message, &message_length);
+
+            logger->LogError("DatabaseModule: Query error (" + std::string(cass_error_desc(rc)) + "): " + 
+                    std::string(message, message_length));
+            return std::nullopt;
+        }
+
+        QueryResultPtr result(cass_future_get_result(query_future_ptr.get()));
+
+        DatabaseChunk chunk;
+        CassIterator *it = cass_iterator_from_result(result.get());
+        while (cass_iterator_next(it))
+        {
+            const CassRow *row = cass_iterator_get_row(it);
+            auto current_exhibit = getDatabaseChunkHelper(row);
+            if (current_exhibit.has_value())
+            {
+                chunk.exhibits.push_back(current_exhibit.value());
+            }
+        }
+        cass_iterator_free(it);
+
+        const char *paging_state = nullptr;
+        size_t paging_state_length = 0;
+        if (cass_result_has_more_pages(result.get()) &&
+            cass_result_paging_state_token(result.get(), &paging_state, &paging_state_length) == CASS_OK)
+        {
+            chunk.next_chunk_token.assign(paging_state, paging_state + paging_state_length);
+            chunk.is_last_chunk = false;
+        }
+        else
+        {
+            chunk.next_chunk_token = "";
+            chunk.is_last_chunk = true;
+        }
+
+        return chunk;
+    }
+
+    std::optional<DatabaseResponse> DatabaseModule::getDatabaseChunkHelper(const CassRow* row)
+    {
+        CassUuid id;
+        if (CassError err = cass_value_get_uuid(cass_row_get_column_by_name(row, "id"), &id); err != CASS_OK)
+        {
+            logError(err, "Failed to get id from database row for chunk");
+            return std::nullopt;
+        };
+        char id_str[37];
+        cass_uuid_string(id, id_str);
+        std::string exhibit_id(id_str);
+
+        const cass_byte_t *image_data = nullptr;
+        size_t image_size_bytes = 0;
+        if (CassError err = cass_value_get_bytes(cass_row_get_column_by_name(row, "image"), &image_data, &image_size_bytes); err != CASS_OK)
+        {
+            logError(err, "Failed to get image from database row for chunk");
+            return std::nullopt;
+        };
+        
+        std::vector<uint8_t> image_buffer(image_data, image_data + image_size_bytes);
+
+        const char *title_data;
+        size_t title_length;
+        CassError err = cass_value_get_string(cass_row_get_column_by_name(row, "title"), &title_data, &title_length);
+        if (err != CASS_OK)
+        {
+            logError(err, "Failed to get title from database row for chunk");
+            return std::nullopt;
+        }
+        std::string exhibit_title(title_data, title_length);
+
+
+        const char *decription_data;
+        size_t description_length;
+        err = cass_value_get_string(cass_row_get_column_by_name(row, "description"), &decription_data, &description_length);
+        if (err != CASS_OK)
+        {
+            logError(err, "Failed to get description from database row for chunk");
+            return std::nullopt;
+        }
+        std::string exhibit_description(decription_data, description_length);
+        
+        DatabaseResponse response;
+        response.exhibit_id = std::move(exhibit_id);
+        response.exhibit_description = std::move(exhibit_description);
+        response.exhibit_image = std::move(image_buffer);
+        response.exhibit_name = std::move(exhibit_title);
+        return response;
+    }
+
+
     bool DatabaseModule::initMatchersPool()
     {
         std::shared_ptr<MatcherPool> new_pool = std::make_shared<MatcherPool>();

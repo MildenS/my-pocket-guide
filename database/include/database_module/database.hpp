@@ -40,6 +40,7 @@ public:
     virtual std::optional<DatabaseResponse> getExhibit(const cv::Mat& description);
     virtual bool addExhibit(const DatabaseRequest& exhibit_data);
     virtual bool deleteExhibit(const std::string& exhibit_idid);
+    virtual std::optional<DatabaseChunk> getDatabaseChunk(const std::string& next_chunk_token);
 
 
 protected:
@@ -69,6 +70,7 @@ private:
 
     void logError(CassError err, const std::string& context);
     std::optional<DatabaseResponse> getExhibitHelper(const CassRow* row);
+    std::optional<DatabaseResponse> getDatabaseChunkHelper(const CassRow* row);
 
     bool initMatchersPool();
     PooledMatcher getMatcher();

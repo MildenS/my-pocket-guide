@@ -92,12 +92,7 @@ namespace MPG
         resp.exhibit_description = std::move(db_resp.exhibit_description);
         resp.exhibit_name = std::move(db_resp.exhibit_name);
         resp.exhibit_image = std::move(db_resp.exhibit_image);
-        //bool success = cv::imencode(".jpg", db_resp.exhibit_image, resp.exhibit_image);
-        // if (!success)
-        // {
-        //     logger->LogWarning(std::string("Core: invalid image of exhibit with name ") + db_resp.exhibit_name);
-        //     return std::nullopt;
-        // }
+
         return resp;
     }
 
@@ -144,5 +139,11 @@ namespace MPG
     bool Core::deleteExhibit(const std::string& exhibit_id)
     {
         return db->deleteExhibit(exhibit_id);
+    }
+
+    std::optional<DatabaseChunk> Core::getDatabaseChunk(const std::string& next_chunk_token)
+    {
+        return db->getDatabaseChunk(next_chunk_token);
+
     }
 }

@@ -22,6 +22,7 @@ public:
     virtual std::optional<CoreResponse> getExhibit(std::vector<uint8_t>&& exhibit_image);
     virtual bool addExhibit(const CoreRequest& req);
     virtual bool deleteExhibit(const std::string& exhibit_id);
+    virtual std::optional<DatabaseChunk> getDatabaseChunk(const std::string& next_chunk_token);
     virtual ~Core(){};
 
 
