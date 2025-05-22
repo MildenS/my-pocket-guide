@@ -21,7 +21,19 @@ Server::Server(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger
 
 int Server::start()
 {
+    WFGlobalSettings settings = GLOBAL_SETTINGS_DEFAULT;
+    settings.poller_threads = 2; 
+    settings.handler_threads = 6;  
+    settings.dns_threads = 2;
+	WORKFLOW_library_init(&settings);
+    
     return server_ptr->start(8888);
+}
+
+void Server::stop()
+{
+    server_ptr->stop();
+    logger_ptr->LogError("Server: server stopped");
 }
 
 

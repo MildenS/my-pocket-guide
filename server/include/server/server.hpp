@@ -13,6 +13,7 @@ public:
     Server(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log);
 
     int start();
+    void stop();
 
 protected:
 

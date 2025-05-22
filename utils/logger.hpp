@@ -28,7 +28,7 @@ private:
 
 inline Logger::Logger()
 {
-    spdlog::init_thread_pool(1024, 3);
+    spdlog::init_thread_pool(1024, 1);
     constexpr size_t max_file_size = 1048576;
     constexpr size_t max_files = 3;
 
