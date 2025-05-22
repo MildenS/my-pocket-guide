@@ -2,6 +2,7 @@ build/
 server/build
 database/build
 .vscode/
+logs/
 
 docs/html
 docs/latex

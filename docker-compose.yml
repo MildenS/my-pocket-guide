@@ -11,12 +11,15 @@ services:
     environment:
       - CASSANDRA_CLUSTER_NAME=MPGCluster
       - CASSANDRA_SEEDS=my-cassandra
+      - MAX_HEAP_SIZE=5G
+      - HEAP_NEWSIZE=800M
     healthcheck:
       test: ["CMD", "cqlsh", "-e", "SELECT now() FROM system.local"]
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 30s
+    restart: unless-stopped
 
   cassandra-init:
     image: cassandra:latest
