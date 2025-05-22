@@ -132,7 +132,8 @@ void Server::deleteExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
 void Server::getDatabaseChunk(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
 {
     logger_ptr->LogInfo("Server: Start get database chunk");
-    auto& next_chunk_token = req->query("next-chunk-token");
+    auto& encoded_token = req->query("next-chunk-token");  
+    auto next_chunk_token = wfrest::Base64::decode(encoded_token);
     auto chunk = core_ptr->getDatabaseChunk(next_chunk_token);
     if (!chunk.has_value())
     {
@@ -141,10 +142,23 @@ void Server::getDatabaseChunk(const wfrest::HttpReq* req, wfrest::HttpResp* resp
         return;
     }
     nlohmann::json data_json;
-    data_json["next_chunk_token"] = std::move(chunk.value().next_chunk_token);
+    data_json["next_chunk_token"] = std::move(wfrest::Base64::encode(reinterpret_cast<const unsigned char*>
+                                    (chunk.value().next_chunk_token.data()), 
+                                    chunk.value().next_chunk_token.size()));
     data_json["is_last_chunk"] = std::move(chunk.value().is_last_chunk);
     data_json["exhibits"] = std::move(chunk.value().exhibits);
     resp->Json(data_json.dump());
+}
+
+
+void to_json(nlohmann::json& j, const DatabaseResponse& db_resp) {
+    j = nlohmann::json{
+        {"exhibit_id", std::move(db_resp.exhibit_id)},
+        {"exhibit_title", std::move(db_resp.exhibit_name)},
+        {"exhibit_description", std::move(db_resp.exhibit_description)},
+        {"exhibit_image", wfrest::Base64::encode(db_resp.exhibit_image.data(), 
+                                     db_resp.exhibit_image.size())}
+    };
 }
 
 }
