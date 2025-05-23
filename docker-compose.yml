@@ -7,7 +7,7 @@ services:
     ports:
       - "9042:9042"
     volumes:
-      - cassandra_data:/etc/docker-volumes/cassandra
+      - cassandra_data:/var/lib/cassandra
     environment:
       - CASSANDRA_CLUSTER_NAME=MPGCluster
       - CASSANDRA_SEEDS=my-cassandra
@@ -20,12 +20,16 @@ services:
       retries: 30
       start_period: 30s
     restart: unless-stopped
+    networks:
+      - "backend"
 
   cassandra-init:
     image: cassandra:latest
     depends_on:
       cassandra:
         condition: service_healthy
+    networks:
+      - backend
     entrypoint:
       - /bin/bash
       - -c
@@ -36,5 +40,23 @@ services:
         echo 'Creating table mpg_keyspace.exhibits...'
         cqlsh my-cassandra -e "CREATE TABLE IF NOT EXISTS mpg_keyspace.exhibits (id uuid PRIMARY KEY, descriptor blob, image blob, height int, width int, title text, description text);"
 
+  server:
+    build: .
+    expose:
+      - 8888
+    ports:
+      - "8888:8888"
+    networks:
+      - backend
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+
 volumes:
   cassandra_data:
+
+networks:
+  backend:
+    name: backend
