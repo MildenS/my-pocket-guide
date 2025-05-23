@@ -53,6 +53,14 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+  
+  swagger-ui:
+    image: nginx:alpine
+    container_name: swagger-ui
+    ports:
+      - "8080:80"
+    volumes:
+      - ./swagger-ui:/usr/share/nginx/html:ro
 
 volumes:
   cassandra_data:

@@ -1,0 +1,125 @@
+openapi: 3.0.3
+info:
+  title: MyPocketGuide Server API
+  version: 1.0.0
+  description: API for managing exhibits
+
+servers:
+  - url: http://localhost:8888
+
+paths:
+  /add-exhibit:
+    post:
+      summary: Add new exhibit
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                main-image:
+                  type: string
+                  format: binary
+                image-0:
+                  type: string
+                  format: binary
+                image-1:
+                  type: string
+                  format: binary
+                exhibit_title:
+                  type: string
+                exhibit_description:
+                  type: string
+      responses:
+        '201':
+          description: Successfully exhibit add
+        '400':
+          description: Unsuccessfully exhibit edd
+
+  /get-exhibit:
+    post:
+      summary: Get exhibit information by image
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                exhibit-image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Exhibit information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exhibit_id:
+                    type: string
+                  exhibit_title:
+                    type: string
+                  exhibit_description:
+                    type: string
+                  exhibit_image:
+                    type: string
+                    description: Base64 encoded image
+        '400':
+          description: Exhibit didn't find
+
+  /delete-exhibit:
+    delete:
+      summary: Delete exhibit by id
+      parameters:
+        - in: query
+          name: exhibit-id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully exibit delete
+        '400':
+          description: Unsuccessfully exhibit delete
+
+  /get-database-chunk:
+    get:
+      summary: Get chunk of exhibit database
+      parameters:
+        - in: query
+          name: next-chunk-token
+          required: true
+          schema:
+            type: string
+            description: Base64-encoded next chunk token (for first chunk it is empty)
+      responses:
+        '200':
+          description: Database chunk
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next_chunk_token:
+                    type: string
+                  is_last_chunk:
+                    type: boolean
+                  exhibits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        exhibit_id:
+                          type: string
+                        exhibit_title:
+                          type: string
+                        exhibit_description:
+                          type: string
+                        exhibit_image:
+                          type: string
+                          description: Base64-encoded image
+        '400':
+          description: Unsuccessfully chunk get
