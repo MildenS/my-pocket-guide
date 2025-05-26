@@ -47,8 +47,6 @@ TEST(MPGDataBaseTest, AddExhibit) {
 
 TEST(MPGDataBaseTest, GetExhibit) {
     CoreTestModule core(config, logger);
-    //bool is_add = core.addExhibit(request);
-    //ASSERT_EQ(is_add, true);
 
     auto response = core.getExhibit(std::move(exhibit_descr[0]));
     ASSERT_NE(response, std::nullopt);
@@ -63,15 +61,14 @@ TEST(MPGDataBaseTest, GetExhibit) {
 
 int main(int argc, char** argv)
 {
-    // if (argc < 2)
-    // {
-    //     std::cerr << "Path to test data is required\n";
-    //     std::abort();
-    // }
-    // makeTestData(std::string(argv[1]));
+    if (argc < 2)
+    {
+        std::cerr << "Path to test data is required\n";
+        std::abort();
+    }
+    makeTestData(std::string(argv[1]));
     config = std::make_shared<Config>();
     logger = std::make_shared<Logger>();
-    makeTestData("../../../data/test_data/1");
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

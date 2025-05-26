@@ -9,23 +9,10 @@ namespace MPG
 {
 
     /**
-     * \brief Constructor of DatabaseModule class
-     * \todo Add config and logger 
+     * \brief Constructor of database class
+     * \param[in] conf Smart pointer to configuration of project
+     * \param[in] log Smart pointer to global logger
      */
-    DatabaseModule::DatabaseModule()
-    {
-        if (!config)
-            config = std::make_shared<Config>();
-        if (!logger)
-            logger = std::make_shared<Logger>();
-        cluster_ptr.reset(cass_cluster_new());
-        session_ptr.reset(cass_session_new());
-        id_generator_ptr.reset(cass_uuid_gen_new());
-        cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
-        cass_log_set_callback(DatabaseModule::logCallback, static_cast<void*>(logger.get()));
-        logger->LogInfo("Database module created");
-    }
-
     DatabaseModule::DatabaseModule(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log)
     {
         config = conf;
@@ -37,14 +24,14 @@ namespace MPG
         cluster_ptr.reset(cass_cluster_new());
         session_ptr.reset(cass_session_new());
         id_generator_ptr.reset(cass_uuid_gen_new());
-        cass_cluster_set_contact_points(cluster_ptr.get(), "localhost");
+        cass_cluster_set_contact_points(cluster_ptr.get(), "my-cassandra");
         cass_log_set_callback(DatabaseModule::logCallback, static_cast<void*>(logger.get()));
         logger->LogInfo("Database module created");
     }
 
     /**
      * \brief Method for init connection to database (must be call after construction of DatabaseModule object)
-     * 
+     * \return true if all init function return true
      */
     [[nodiscard]] bool DatabaseModule::init()
     {
@@ -71,9 +58,9 @@ namespace MPG
 
     /**
      * \brief Method for connect to database
-     * \todo add config and logger
      * \param[in] max_retries Count of tries of connect to databse
-     * \param[in] retry_delay_ms Delay in ms between 2 tries connecting to database 
+     * \param[in] retry_delay_ms Delay in ms between 2 tries connecting to database
+     * \return true if connection to database was successful 
      */
     [[nodiscard]] bool DatabaseModule::ConnectToDatabase(size_t max_retries, size_t retry_delay_ms)
     {
@@ -101,6 +88,10 @@ namespace MPG
     }
 
     
+    /**
+     * \brief Method for load local database (all descriptors and std::map for mapping descriptors and ids)
+     * \return true if loading successful
+     */
     [[nodiscard]] bool DatabaseModule::loadDatabase()
     {
         local_database_descriptor = cv::Mat(0, 32, CV_8UC1); // 32 - size of ORB descriptor
@@ -138,6 +129,11 @@ namespace MPG
         return true;
     }
 
+    /**
+     * \brief Internal method for loading database
+     * \param[in] row Cassanra row for getting data for local database
+     * Load one cassandra row
+     */
     [[nodiscard]] bool DatabaseModule::loadDatabaseHelper(const CassRow* row)
     {
         CassUuid id;
@@ -165,6 +161,11 @@ namespace MPG
         return true;
     }
 
+    /**
+     * \brief Internal method for searchind id of object by it's descriptor
+     * \param[in] exhibit_descriptor Descriptor of object (must be ORB)
+     * \return id of object if search was successful or std::nullopt in other way
+     */
     [[nodiscard]] std::optional<CassUuid> DatabaseModule::findExhibitUuid(const cv::Mat& exhibit_descriptor)
     {
         PooledMatcher matcher = getMatcher();
@@ -210,6 +211,12 @@ namespace MPG
         return best_id;
     }
 
+    /**
+     * \brief Method for getting object info from database by it's ORB descriptor
+     * \param[in] description ORB descriptor of object
+     * \return Object info if successful or std::nullopt in another way
+     * In process of work call findExhibitUuid
+     */
     [[nodiscard]] std::optional<DatabaseResponse> DatabaseModule::getExhibit(const cv::Mat& description)
     {
         /**
@@ -267,6 +274,11 @@ namespace MPG
         return resp;
     }
 
+    /**
+     * \brief Internal method for get object info from cassandra row
+     * \param[in] row raw pointer to cassandra row
+     * \return object info if successful or std::nullopt in another way
+     */
     [[nodiscard]] std::optional<DatabaseResponse> DatabaseModule::getExhibitHelper(const CassRow* row)
     {
         const cass_byte_t *image_data = nullptr;
@@ -317,6 +329,11 @@ namespace MPG
     }
 
 
+    /**
+     * \brief Method for adding new object to database (with updating local database)
+     * \param[in] exhibit_data Object data
+     * \return true if successful or false if was errors
+     */
     [[nodiscard]] bool DatabaseModule::addExhibit(const DatabaseRequest& exhibit_data)
     {
         size_t title_size = exhibit_data.exhibit_title.size();
@@ -401,6 +418,11 @@ namespace MPG
         return true;
     }
 
+    /**
+     * \brief Method for delete object from database (with updating local database)
+     * \param[in] exhibit_id id of object for delete
+     * \return true if successful, either false
+     */
     bool DatabaseModule::deleteExhibit(const std::string& exhibit_id)
     {
         CassUuid id;
@@ -470,6 +492,11 @@ namespace MPG
         return true;
     }
 
+     /**
+     * \brief Method for get data chunk from database
+     * \param[in] next_chunk_token string version of next database page token (it is empty if you need first chunk)
+     * \return Chunk of database if successful, either std::nullopt
+     */
     std::optional<DatabaseChunk> DatabaseModule::getDatabaseChunk(const std::string& next_chunk_token)
     {
         std::string query = "select id, image, title, description from mpg_keyspace.exhibits";
@@ -535,6 +562,11 @@ namespace MPG
         return chunk;
     }
 
+     /**
+     * \brief Internal method for get chunk record info from cassandra row
+     * \param[in] row Raw pinter to cassandra row with record info
+     * \return Object info if successful or std::nullopt
+     */
     std::optional<DatabaseResponse> DatabaseModule::getDatabaseChunkHelper(const CassRow* row)
     {
         CassUuid id;
@@ -587,6 +619,10 @@ namespace MPG
     }
 
 
+     /**
+     * \brief Internal method for create and train cv matchers for searching objects in local database
+     * \return true if successful, either false
+     */
     bool DatabaseModule::initMatchersPool()
     {
         std::shared_ptr<MatcherPool> new_pool = std::make_shared<MatcherPool>();
@@ -608,6 +644,12 @@ namespace MPG
         return true;
     }
 
+     /**
+     * \brief Internal method for get matcher from pool
+     * \return Matcher object (wait while it will be available)
+     * 
+     * Don't forget to return mathcer to pool!
+     */
     PooledMatcher DatabaseModule::getMatcher()
     {
         std::shared_ptr<MatcherPool> current_pool;
@@ -626,6 +668,9 @@ namespace MPG
         return {matcher, current_pool};
     }
 
+    /**
+     * \brief Internal method for return matcher to pool
+     */
     void DatabaseModule::returnMatcher(PooledMatcher matcher)
     {
         const auto &origin_pool = matcher.origin_pool_ptr;

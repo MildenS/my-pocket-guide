@@ -12,6 +12,9 @@
 namespace MPG
 {
 
+/**
+ * \brief Main class for work with database
+ */
 class DatabaseModule
 {
 protected:
