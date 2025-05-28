@@ -7,7 +7,7 @@
 #include <optional>
 
 /**
-* \brief Namespace for MPG database classes and functions
+* \brief Namespace for MPG classes and functions
 */
 namespace MPG
 {

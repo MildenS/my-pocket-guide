@@ -11,6 +11,9 @@ namespace MPG
 
 {
 
+    /**
+ * \brief Main class for core functional
+ */
 class Core
 {
 

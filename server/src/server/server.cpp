@@ -3,6 +3,11 @@
 namespace MPG
 {
 
+/**
+     * \brief Constructor of server class object
+     * \param[in] conf Smart pointer to configuration of project
+     * \param[in] log Smart pointer to global logger
+*/
 Server::Server(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger>& log)
 {
     core_ptr = std::make_unique<Core>(conf, log);
@@ -19,6 +24,10 @@ Server::Server(const std::shared_ptr<Config>& conf, const std::shared_ptr<Logger
     logger_ptr->LogInfo("Server: server created!");
 }
 
+/**
+     * \brief Method for start server on config's port
+     * \return 0 if server started success
+*/
 int Server::start()
 {
     WFGlobalSettings settings = GLOBAL_SETTINGS_DEFAULT;
@@ -30,13 +39,24 @@ int Server::start()
     return server_ptr->start(8888);
 }
 
+/**
+     * \brief Method for stop server
+*/
 void Server::stop()
 {
     server_ptr->stop();
-    logger_ptr->LogError("Server: server stopped");
+    logger_ptr->LogInfo("Server: server stopped");
 }
 
+/**
+     * \brief Method for processing "add-exhibit" route
 
+     HTTP query must have next fields in body (multi-form):
+        - main-image (.jpg image)
+        - some image-*number* (.jpg images) - train images
+        - title - string with exhibit title
+        - description - string with exhibit description
+*/
 void Server::addExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
 {
     logger_ptr->LogInfo("Server: Start adding new exhibit");
@@ -89,6 +109,12 @@ void Server::addExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
     
 }
 
+/**
+     * \brief Method for processing "get-exhibit" route
+
+     HTTP query must have next fields in body (multi-form):
+        - exhibit-image (.jpg image) - image for searching
+*/
 void Server::getExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
 {
     logger_ptr->LogInfo("Server: Start getting exhibit");
@@ -123,6 +149,12 @@ void Server::getExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
     }
 }
 
+/**
+     * \brief Method for processing "delete-exhibit" route
+
+    HTTP query must have next fields in params:
+        - exhibit-id (cass uuid in string format) - image id for deleting
+*/
 void Server::deleteExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
 {
     logger_ptr->LogInfo("Server: Start delete exhibit");
@@ -140,7 +172,12 @@ void Server::deleteExhibit(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
     }
 }
 
+/**
+     * \brief Method for processing "get-database-chunk" route
 
+     HTTP quety must have next fields in params:
+        - next-chunk-token (base64-encoded) - cass page noken (empty for first chunk)
+*/
 void Server::getDatabaseChunk(const wfrest::HttpReq* req, wfrest::HttpResp* resp)
 {
     logger_ptr->LogInfo("Server: Start get database chunk");

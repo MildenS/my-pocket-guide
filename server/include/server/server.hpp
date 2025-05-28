@@ -5,6 +5,9 @@
 
 namespace MPG{
 
+/**
+ * \brief Class for work with network by HTTP queries
+ */
 class Server
 {
 

@@ -9,7 +9,7 @@ namespace MPG
 {
 
     /**
-     * \brief Constructor of database class
+     * \brief Constructor of database class object
      * \param[in] conf Smart pointer to configuration of project
      * \param[in] log Smart pointer to global logger
      */
