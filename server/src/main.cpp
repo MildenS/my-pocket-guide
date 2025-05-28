@@ -18,7 +18,13 @@ void signal_handler(int signum)
 
 int main(int argc, char** argv)
 {
-    std::shared_ptr<MPG::Config> conf = std::make_shared<MPG::Config>();
+    std::shared_ptr<MPG::Config> conf;
+    if (argc < 2)
+        conf = std::make_shared<MPG::Config>();
+    else
+    {
+        conf = std::make_shared<MPG::Config>(argv[1]);
+    }
     std::shared_ptr<MPG::Logger> logger = std::make_shared<MPG::Logger>();
     MPG::Server server(conf, logger);
 

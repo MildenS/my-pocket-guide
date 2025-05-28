@@ -24,7 +24,7 @@ namespace MPG
         cluster_ptr.reset(cass_cluster_new());
         session_ptr.reset(cass_session_new());
         id_generator_ptr.reset(cass_uuid_gen_new());
-        cass_cluster_set_contact_points(cluster_ptr.get(), "my-cassandra");
+        cass_cluster_set_contact_points(cluster_ptr.get(), config->database_host.c_str());
         cass_log_set_callback(DatabaseModule::logCallback, static_cast<void*>(logger.get()));
         logger->LogInfo("Database module created");
     }
@@ -49,7 +49,7 @@ namespace MPG
 
         if (!initMatchersPool())
         {
-            logger->LogCritical("Error init matchrs pool\n");
+            logger->LogCritical("Error init matchers pool\n");
             return false;
         }
         logger->LogInfo("Database module initialized");
@@ -171,7 +171,7 @@ namespace MPG
         PooledMatcher matcher = getMatcher();
         std::vector< std::vector<cv::DMatch> > knn_matches;
         //knn_matches.reserve(local_descriptor_to_id_map.size());
-        const int k = 2;
+        const int k = config->count_matches_knn;
 
         matcher.matcher->knnMatch(exhibit_descriptor, knn_matches, k);
         returnMatcher(matcher);       
@@ -266,7 +266,7 @@ namespace MPG
         std::optional resp = getExhibitHelper(row);
         if (resp.has_value())
         {
-            char id_str[37];
+            char id_str[37]; // 37 - size of cass uuid in string format
             cass_uuid_string(exhibit_id.value(), id_str);
             resp.value().exhibit_id = std::string(id_str);
         }
@@ -292,7 +292,7 @@ namespace MPG
         std::vector<uint8_t> image_buffer(image_data, image_data + image_size_bytes);
 
         const char *title_data;
-        size_t title_length;
+        size_t title_length = 0;
         CassError err = cass_value_get_string(cass_row_get_column_by_name(row, "title"), &title_data, &title_length);
         if (err != CASS_OK)
         {
@@ -303,7 +303,7 @@ namespace MPG
 
 
         const char *decription_data;
-        size_t description_length;
+        size_t description_length = 0;
         err = cass_value_get_string(cass_row_get_column_by_name(row, "description"), &decription_data, &description_length);
         if (err != CASS_OK)
         {
@@ -394,7 +394,7 @@ namespace MPG
         if (rc != CASS_OK)
         {
             const char *message;
-            size_t message_length;
+            size_t message_length = 0;
             cass_future_error_message(query_future_ptr.get(), &message, &message_length);
 
             logger->LogError("DatabaseModule: Query error (" + std::string(cass_error_desc(rc)) + "): " + 
@@ -501,7 +501,7 @@ namespace MPG
     {
         std::string query = "select id, image, title, description from mpg_keyspace.exhibits";
         StatementPtr  get_chunk_statement(cass_statement_new(query.c_str(), 0));
-        const int chunk_size = 10;
+        const int chunk_size = config->database_chunk_size;
         cass_statement_set_paging_size(get_chunk_statement.get(), chunk_size);
 
         if (!next_chunk_token.empty())
@@ -575,7 +575,7 @@ namespace MPG
             logError(err, "Failed to get id from database row for chunk");
             return std::nullopt;
         };
-        char id_str[37];
+        char id_str[37]; // 37 - cass uuid standart sise in string form
         cass_uuid_string(id, id_str);
         std::string exhibit_id(id_str);
 

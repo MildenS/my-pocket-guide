@@ -3,5 +3,14 @@
     "max_connect_retries": 20,
     "connect_retry_delay_ms": 10000,
     "max_matches_count": 100,
-    "match_ratio_threshold": 0.75
+    "match_ratio_threshold": 0.75,
+    "database_host": "localhost",
+    "count_matches_knn": 2,
+    "database_chunk_size": 10,
+
+    "orb_pool_size": 10,
+    "orb_kps_count": 100,
+    "max_descriptor_size": 100,
+
+    "server_port": 8888
 }

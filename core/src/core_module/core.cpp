@@ -30,7 +30,7 @@ namespace MPG
         std::vector<cv::KeyPoint> kps;
         cv::Mat descr;
         cv::Mat exhibit_image_mat = cv::imdecode(exhibit_image, cv::IMREAD_GRAYSCALE);
-        kps.reserve(100);
+        //kps.reserve(100);
         ORBPtr orb = getORB();
         orb->detectAndCompute(exhibit_image_mat, cv::noArray(), kps, descr);
         returnORB(orb);
@@ -70,11 +70,11 @@ namespace MPG
     bool Core::initORBPool()
     {
         orb_pool.pool = std::queue<ORBPtr>();
-        const size_t pool_size = 10;
+        const size_t pool_size = config->orb_pool_size;
 
         for (size_t i = 0; i < pool_size; ++i)
         {
-            ORBPtr orb = cv::ORB::create(100);
+            ORBPtr orb = cv::ORB::create(config->orb_kps_count);
             
             orb_pool.pool.push(orb);
         }
@@ -163,7 +163,7 @@ namespace MPG
         std::sort(indices.begin(), indices.end(), [&](int a, int b)
                   { return all_kps[a].response > all_kps[b].response; });
 
-        int top_n = std::min(100, static_cast<int>(indices.size()));
+        int top_n = std::min(static_cast<int>(config->max_descriptor_size), static_cast<int>(indices.size()));
         cv::Mat final_descriptors;
 
         for (int i = 0; i < top_n; ++i)
