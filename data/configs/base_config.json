@@ -4,7 +4,7 @@
     "connect_retry_delay_ms": 10000,
     "max_matches_count": 100,
     "match_ratio_threshold": 0.75,
-    "database_host": "localhost",
+    "database_host": "my-cassandra", 
     "count_matches_knn": 2,
     "database_chunk_size": 10,
 
