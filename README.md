@@ -1,6 +1,6 @@
 # My Pocket Guide
 
-A brief overview of what this project does, its purpose, and what problems it solves.
+Welcome to MyPocketGuide server repository! Here you can download and use server part of software package MyPocketGuide. If you want to visit the repository with the administrative application you should visit this repo https://github.com/MildenS/mpgadmin.git
 
 ## Dependencies
 
